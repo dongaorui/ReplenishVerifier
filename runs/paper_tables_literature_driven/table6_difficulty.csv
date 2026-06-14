@@ -1,0 +1,31 @@
+method,n,executable_rate,optimal_rate,objective_accuracy,structure_completeness,inventory_balance_accuracy,constraint_coverage,average_runtime_sec,average_repair_feedback_count,group,difficulty
+Best-of-K,3,1.0,1.0,0.0,0.6,0.0,0.6,0.443998633340622,2.0,easy,easy
+Best-of-K,6,1.0,1.0,0.0,0.6857142857142856,1.0,0.6666666666666666,0.4441450333300357,2.0,hard,hard
+Best-of-K,6,1.0,1.0,0.0,0.8333333333333334,1.0,0.8,0.4499519500047124,1.0,medium,medium
+Direct,3,0.0,0.0,0.0,0.0,0.0,0.0,0.42735159998604405,0.0,easy,easy
+Direct,6,0.0,0.0,0.0,0.0,0.0,0.0,0.44326283331611194,0.0,hard,hard
+Direct,6,0.0,0.0,0.0,0.0,0.0,0.0,0.429394866679407,0.0,medium,medium
+OR-R1-like Voting,3,1.0,1.0,0.0,0.6,0.0,0.6,0.443998633340622,2.0,easy,easy
+OR-R1-like Voting,6,1.0,1.0,0.0,0.6857142857142856,1.0,0.6666666666666666,0.4441450333300357,2.0,hard,hard
+OR-R1-like Voting,6,1.0,1.0,0.0,0.8333333333333334,1.0,0.8,0.4499519500047124,1.0,medium,medium
+OptArgus-like Audit,3,1.0,1.0,1.0,1.0,0.0,1.0,0.4936641666960592,0.0,easy,easy
+OptArgus-like Audit,6,1.0,1.0,0.5,0.8285714285714286,1.0,0.8333333333333334,0.4631275166660392,1.0,hard,hard
+OptArgus-like Audit,6,1.0,1.0,1.0,1.0,1.0,1.0,0.48385236665490083,0.0,medium,medium
+OptiRepair-like Repair-Prompt,3,1.0,1.0,1.0,1.0,0.0,1.0,0.4936641666960592,0.0,easy,easy
+OptiRepair-like Repair-Prompt,6,1.0,1.0,0.5,0.8285714285714286,1.0,0.8333333333333334,0.4631275166660392,1.0,hard,hard
+OptiRepair-like Repair-Prompt,6,1.0,1.0,1.0,1.0,1.0,1.0,0.48385236665490083,0.0,medium,medium
+ReplenishVerifier-Full,3,1.0,1.0,1.0,1.0,0.0,1.0,0.4936641666960592,0.0,easy,easy
+ReplenishVerifier-Full,6,1.0,1.0,1.0,1.0,1.0,1.0,0.4863273499843975,0.0,hard,hard
+ReplenishVerifier-Full,6,1.0,1.0,0.5,1.0,1.0,1.0,0.4651726999921569,0.0,medium,medium
+ReplenishVerifier-Repair,3,1.0,1.0,1.0,1.0,0.0,1.0,0.4936641666960592,0.0,easy,easy
+ReplenishVerifier-Repair,6,1.0,1.0,1.0,1.0,1.0,1.0,0.4863273499843975,0.0,hard,hard
+ReplenishVerifier-Repair,6,1.0,1.0,0.5,1.0,1.0,1.0,0.4651726999921569,0.0,medium,medium
+SIRL-like LP-Stats,3,1.0,1.0,1.0,1.0,0.0,1.0,0.4936641666960592,0.0,easy,easy
+SIRL-like LP-Stats,6,1.0,1.0,0.6666666666666666,0.8523809523809525,1.0,0.8611111111111112,0.4688657166649743,0.8333333333333334,hard,hard
+SIRL-like LP-Stats,6,1.0,1.0,1.0,1.0,1.0,1.0,0.48385236665490083,0.0,medium,medium
+Solver-Filter,3,1.0,1.0,0.0,0.6,0.0,0.6,0.443998633340622,2.0,easy,easy
+Solver-Filter,6,1.0,1.0,0.0,0.6857142857142856,1.0,0.6666666666666666,0.4441450333300357,2.0,hard,hard
+Solver-Filter,6,1.0,1.0,0.0,0.8333333333333334,1.0,0.8,0.4499519500047124,1.0,medium,medium
+Structure-Only,3,1.0,1.0,1.0,1.0,0.0,1.0,0.4936641666960592,0.0,easy,easy
+Structure-Only,6,1.0,1.0,1.0,1.0,1.0,1.0,0.4863273499843975,0.0,hard,hard
+Structure-Only,6,1.0,1.0,0.5,1.0,1.0,1.0,0.4651726999921569,0.0,medium,medium

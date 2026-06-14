@@ -42,7 +42,7 @@ def run_candidate_selection(benchmark_path, candidates_path, out_path, work_dir,
         if exec_result.get("lp_path"):
             try:
                 parsed = parse_lp_file(exec_result["lp_path"])
-                structure_result = check_structures(parsed, ref["expected_structures"])
+                structure_result = check_structures(parsed, ref["expected_structures"], problem_type=ref.get("problem_type"))
                 structure_dict = structure_result.to_dict()
                 feedback = generate_feedback(structure_result)
             except Exception as exc:

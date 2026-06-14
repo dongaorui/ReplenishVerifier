@@ -1,0 +1,565 @@
+problem_id,candidate_id,method_name,candidate_method,repair_feedback_count,missing_structures,feedback,repair_prompt
+single_period_newsvendor_0000,cand_1_remove_inventory_balance,candidate,demo_remove_inventory_balance,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_period_newsvendor_0000
+Candidate ID: cand_1_remove_inventory_balance
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。
+"
+single_period_newsvendor_0000,cand_2_remove_capacity_constraint,candidate,demo_remove_capacity_constraint,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_period_newsvendor_0000
+Candidate ID: cand_2_remove_capacity_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。
+"
+single_period_newsvendor_0000,cand_3_remove_big_m_constraint,candidate,demo_remove_big_m_constraint,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_period_newsvendor_0000
+Candidate ID: cand_3_remove_big_m_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。
+"
+single_period_newsvendor_0001,cand_1_remove_inventory_balance,candidate,demo_remove_inventory_balance,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_period_newsvendor_0001
+Candidate ID: cand_1_remove_inventory_balance
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。
+"
+single_period_newsvendor_0001,cand_2_remove_capacity_constraint,candidate,demo_remove_capacity_constraint,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_period_newsvendor_0001
+Candidate ID: cand_2_remove_capacity_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。
+"
+single_period_newsvendor_0001,cand_3_remove_big_m_constraint,candidate,demo_remove_big_m_constraint,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_period_newsvendor_0001
+Candidate ID: cand_3_remove_big_m_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。
+"
+single_period_newsvendor_0002,cand_1_remove_inventory_balance,candidate,demo_remove_inventory_balance,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_period_newsvendor_0002
+Candidate ID: cand_1_remove_inventory_balance
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。
+"
+single_period_newsvendor_0002,cand_2_remove_capacity_constraint,candidate,demo_remove_capacity_constraint,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_period_newsvendor_0002
+Candidate ID: cand_2_remove_capacity_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。
+"
+single_period_newsvendor_0002,cand_3_remove_big_m_constraint,candidate,demo_remove_big_m_constraint,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_period_newsvendor_0002
+Candidate ID: cand_3_remove_big_m_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.600。请优先修复上述缺失结构。
+"
+single_item_multi_period_shortage_0000,cand_1_remove_inventory_balance,candidate,demo_remove_inventory_balance,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_item_multi_period_shortage_0000
+Candidate ID: cand_1_remove_inventory_balance
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。
+"
+single_item_multi_period_shortage_0000,cand_2_remove_capacity_constraint,candidate,demo_remove_capacity_constraint,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_item_multi_period_shortage_0000
+Candidate ID: cand_2_remove_capacity_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。
+"
+single_item_multi_period_shortage_0000,cand_3_remove_big_m_constraint,candidate,demo_remove_big_m_constraint,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_item_multi_period_shortage_0000
+Candidate ID: cand_3_remove_big_m_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。
+"
+single_item_multi_period_shortage_0001,cand_1_remove_inventory_balance,candidate,demo_remove_inventory_balance,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_item_multi_period_shortage_0001
+Candidate ID: cand_1_remove_inventory_balance
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。
+"
+single_item_multi_period_shortage_0001,cand_2_remove_capacity_constraint,candidate,demo_remove_capacity_constraint,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_item_multi_period_shortage_0001
+Candidate ID: cand_2_remove_capacity_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。
+"
+single_item_multi_period_shortage_0001,cand_3_remove_big_m_constraint,candidate,demo_remove_big_m_constraint,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_item_multi_period_shortage_0001
+Candidate ID: cand_3_remove_big_m_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。
+"
+single_item_multi_period_shortage_0002,cand_1_remove_inventory_balance,candidate,demo_remove_inventory_balance,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_item_multi_period_shortage_0002
+Candidate ID: cand_1_remove_inventory_balance
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。
+"
+single_item_multi_period_shortage_0002,cand_2_remove_capacity_constraint,candidate,demo_remove_capacity_constraint,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_item_multi_period_shortage_0002
+Candidate ID: cand_2_remove_capacity_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。
+"
+single_item_multi_period_shortage_0002,cand_3_remove_big_m_constraint,candidate,demo_remove_big_m_constraint,2,"['shortage_variable', 'shortage_cost']","结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: single_item_multi_period_shortage_0002
+Candidate ID: cand_3_remove_big_m_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目允许缺货或包含缺货惩罚，但你的模型没有缺货变量。应加入 B[t] 或 B[i,t] 表示缺货/积压量。
+- 你的目标函数缺少缺货惩罚项。应加入 shortage_cost * B[t]。
+当前结构完整性分数为 0.667。请优先修复上述缺失结构。
+"
+multi_item_capacity_0000,cand_1_remove_inventory_balance,candidate,demo_remove_inventory_balance,1,['capacity_constraint'],"结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: multi_item_capacity_0000
+Candidate ID: cand_1_remove_inventory_balance
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。
+"
+multi_item_capacity_0000,cand_2_remove_capacity_constraint,candidate,demo_remove_capacity_constraint,1,['capacity_constraint'],"结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: multi_item_capacity_0000
+Candidate ID: cand_2_remove_capacity_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。
+"
+multi_item_capacity_0000,cand_3_remove_big_m_constraint,candidate,demo_remove_big_m_constraint,1,['capacity_constraint'],"结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: multi_item_capacity_0000
+Candidate ID: cand_3_remove_big_m_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。
+"
+multi_item_capacity_0001,cand_1_remove_inventory_balance,candidate,demo_remove_inventory_balance,1,['capacity_constraint'],"结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: multi_item_capacity_0001
+Candidate ID: cand_1_remove_inventory_balance
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。
+"
+multi_item_capacity_0001,cand_2_remove_capacity_constraint,candidate,demo_remove_capacity_constraint,1,['capacity_constraint'],"结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: multi_item_capacity_0001
+Candidate ID: cand_2_remove_capacity_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。
+"
+multi_item_capacity_0001,cand_3_remove_big_m_constraint,candidate,demo_remove_big_m_constraint,1,['capacity_constraint'],"结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: multi_item_capacity_0001
+Candidate ID: cand_3_remove_big_m_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。
+"
+multi_item_capacity_0002,cand_1_remove_inventory_balance,candidate,demo_remove_inventory_balance,1,['capacity_constraint'],"结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: multi_item_capacity_0002
+Candidate ID: cand_1_remove_inventory_balance
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。
+"
+multi_item_capacity_0002,cand_2_remove_capacity_constraint,candidate,demo_remove_capacity_constraint,1,['capacity_constraint'],"结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: multi_item_capacity_0002
+Candidate ID: cand_2_remove_capacity_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。
+"
+multi_item_capacity_0002,cand_3_remove_big_m_constraint,candidate,demo_remove_big_m_constraint,1,['capacity_constraint'],"结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: multi_item_capacity_0002
+Candidate ID: cand_3_remove_big_m_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含容量限制，但你的模型没有容量约束。应加入类似 sum_i volume[i] * I[i,t] <= capacity 的约束。
+当前结构完整性分数为 0.800。请优先修复上述缺失结构。
+"
+fixed_order_cost_big_m_0000,cand_1_remove_inventory_balance,candidate,demo_remove_inventory_balance,3,"['binary_order_variable', 'big_m_constraint', 'fixed_order_cost']","结构验证发现以下问题：
+- 题目包含固定订货成本，但你的模型没有 binary 订货触发变量 Y[t]。应加入 Y[t] ∈ {0,1}。
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+- 你的目标函数缺少固定订货成本项。应加入 fixed_order_cost * Y[t]。
+当前结构完整性分数为 0.571。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: fixed_order_cost_big_m_0000
+Candidate ID: cand_1_remove_inventory_balance
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含固定订货成本，但你的模型没有 binary 订货触发变量 Y[t]。应加入 Y[t] ∈ {0,1}。
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+- 你的目标函数缺少固定订货成本项。应加入 fixed_order_cost * Y[t]。
+当前结构完整性分数为 0.571。请优先修复上述缺失结构。
+"
+fixed_order_cost_big_m_0000,cand_2_remove_capacity_constraint,candidate,demo_remove_capacity_constraint,3,"['binary_order_variable', 'big_m_constraint', 'fixed_order_cost']","结构验证发现以下问题：
+- 题目包含固定订货成本，但你的模型没有 binary 订货触发变量 Y[t]。应加入 Y[t] ∈ {0,1}。
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+- 你的目标函数缺少固定订货成本项。应加入 fixed_order_cost * Y[t]。
+当前结构完整性分数为 0.571。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: fixed_order_cost_big_m_0000
+Candidate ID: cand_2_remove_capacity_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含固定订货成本，但你的模型没有 binary 订货触发变量 Y[t]。应加入 Y[t] ∈ {0,1}。
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+- 你的目标函数缺少固定订货成本项。应加入 fixed_order_cost * Y[t]。
+当前结构完整性分数为 0.571。请优先修复上述缺失结构。
+"
+fixed_order_cost_big_m_0000,cand_3_remove_big_m_constraint,candidate,demo_remove_big_m_constraint,1,['big_m_constraint'],"结构验证发现以下问题：
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+当前结构完整性分数为 0.857。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: fixed_order_cost_big_m_0000
+Candidate ID: cand_3_remove_big_m_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+当前结构完整性分数为 0.857。请优先修复上述缺失结构。
+"
+fixed_order_cost_big_m_0001,cand_1_remove_inventory_balance,candidate,demo_remove_inventory_balance,3,"['binary_order_variable', 'big_m_constraint', 'fixed_order_cost']","结构验证发现以下问题：
+- 题目包含固定订货成本，但你的模型没有 binary 订货触发变量 Y[t]。应加入 Y[t] ∈ {0,1}。
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+- 你的目标函数缺少固定订货成本项。应加入 fixed_order_cost * Y[t]。
+当前结构完整性分数为 0.571。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: fixed_order_cost_big_m_0001
+Candidate ID: cand_1_remove_inventory_balance
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含固定订货成本，但你的模型没有 binary 订货触发变量 Y[t]。应加入 Y[t] ∈ {0,1}。
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+- 你的目标函数缺少固定订货成本项。应加入 fixed_order_cost * Y[t]。
+当前结构完整性分数为 0.571。请优先修复上述缺失结构。
+"
+fixed_order_cost_big_m_0001,cand_2_remove_capacity_constraint,candidate,demo_remove_capacity_constraint,3,"['binary_order_variable', 'big_m_constraint', 'fixed_order_cost']","结构验证发现以下问题：
+- 题目包含固定订货成本，但你的模型没有 binary 订货触发变量 Y[t]。应加入 Y[t] ∈ {0,1}。
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+- 你的目标函数缺少固定订货成本项。应加入 fixed_order_cost * Y[t]。
+当前结构完整性分数为 0.571。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: fixed_order_cost_big_m_0001
+Candidate ID: cand_2_remove_capacity_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含固定订货成本，但你的模型没有 binary 订货触发变量 Y[t]。应加入 Y[t] ∈ {0,1}。
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+- 你的目标函数缺少固定订货成本项。应加入 fixed_order_cost * Y[t]。
+当前结构完整性分数为 0.571。请优先修复上述缺失结构。
+"
+fixed_order_cost_big_m_0001,cand_3_remove_big_m_constraint,candidate,demo_remove_big_m_constraint,1,['big_m_constraint'],"结构验证发现以下问题：
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+当前结构完整性分数为 0.857。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: fixed_order_cost_big_m_0001
+Candidate ID: cand_3_remove_big_m_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+当前结构完整性分数为 0.857。请优先修复上述缺失结构。
+"
+fixed_order_cost_big_m_0002,cand_1_remove_inventory_balance,candidate,demo_remove_inventory_balance,3,"['binary_order_variable', 'big_m_constraint', 'fixed_order_cost']","结构验证发现以下问题：
+- 题目包含固定订货成本，但你的模型没有 binary 订货触发变量 Y[t]。应加入 Y[t] ∈ {0,1}。
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+- 你的目标函数缺少固定订货成本项。应加入 fixed_order_cost * Y[t]。
+当前结构完整性分数为 0.571。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: fixed_order_cost_big_m_0002
+Candidate ID: cand_1_remove_inventory_balance
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含固定订货成本，但你的模型没有 binary 订货触发变量 Y[t]。应加入 Y[t] ∈ {0,1}。
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+- 你的目标函数缺少固定订货成本项。应加入 fixed_order_cost * Y[t]。
+当前结构完整性分数为 0.571。请优先修复上述缺失结构。
+"
+fixed_order_cost_big_m_0002,cand_2_remove_capacity_constraint,candidate,demo_remove_capacity_constraint,3,"['binary_order_variable', 'big_m_constraint', 'fixed_order_cost']","结构验证发现以下问题：
+- 题目包含固定订货成本，但你的模型没有 binary 订货触发变量 Y[t]。应加入 Y[t] ∈ {0,1}。
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+- 你的目标函数缺少固定订货成本项。应加入 fixed_order_cost * Y[t]。
+当前结构完整性分数为 0.571。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: fixed_order_cost_big_m_0002
+Candidate ID: cand_2_remove_capacity_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 题目包含固定订货成本，但你的模型没有 binary 订货触发变量 Y[t]。应加入 Y[t] ∈ {0,1}。
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+- 你的目标函数缺少固定订货成本项。应加入 fixed_order_cost * Y[t]。
+当前结构完整性分数为 0.571。请优先修复上述缺失结构。
+"
+fixed_order_cost_big_m_0002,cand_3_remove_big_m_constraint,candidate,demo_remove_big_m_constraint,1,['big_m_constraint'],"结构验证发现以下问题：
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+当前结构完整性分数为 0.857。请优先修复上述缺失结构。","You are fixing a PuLP optimization model for an inventory replenishment problem.
+Revise the generated code according to the structure feedback below.
+Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.
+
+Problem ID: fixed_order_cost_big_m_0002
+Candidate ID: cand_3_remove_big_m_constraint
+
+Feedback:
+结构验证发现以下问题：
+- 你的模型有固定订货成本或订货触发逻辑，但没有 Big-M 连接约束。应加入 Q[t] <= M * Y[t]。
+当前结构完整性分数为 0.857。请优先修复上述缺失结构。
+"

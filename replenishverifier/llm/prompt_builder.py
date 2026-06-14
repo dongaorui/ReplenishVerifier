@@ -53,3 +53,40 @@ def build_chat_messages(sample):
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": build_prompt(sample)},
     ]
+
+
+def build_repair_prompt(sample, repair_row, original_code=""):
+    params = json.dumps(sample.get("parameters", {}), ensure_ascii=False, indent=2)
+    return f'''You are repairing Python PuLP code for an inventory replenishment optimization problem.
+
+Problem ID: {sample.get('id')}
+Problem type: {sample.get('problem_type')}
+Difficulty: {sample.get('difficulty')}
+
+Natural language problem:
+{sample.get('natural_language')}
+
+Parameters as JSON:
+{params}
+
+Original candidate code:
+```python
+{original_code or repair_row.get('generated_code', '')}
+```
+
+Verifier feedback:
+{repair_row.get('feedback') or repair_row.get('repair_prompt') or ''}
+
+Hard requirements:
+1. Return one complete corrected Python program using PuLP.
+2. Preserve the required solve/export interface: build_model(), optional OUTPUT_LP_PATH writeLP, solver call, STATUS and OBJECTIVE prints.
+3. Fix only the modeling and execution issues indicated by the feedback and problem statement.
+4. Output only one Python code block.
+'''
+
+
+def build_repair_chat_messages(sample, repair_row, original_code=""):
+    return [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": build_repair_prompt(sample, repair_row, original_code=original_code)},
+    ]

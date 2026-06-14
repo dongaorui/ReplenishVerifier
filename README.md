@@ -1,197 +1,159 @@
 # ReplenishVerifier
 
-`ReplenishVerifier` 是一个面向论文原型的 Python 研究代码框架，用于：
+**ReplenishVerifier** 是一个面向论文原型的 Python 研究代码框架，用于：
 
-> LP-Structure-Grounded Process Supervision for LLM-based Replenishment Optimization Modeling  
-> 面向库存补货优化的大语言模型结构验证增强过程监督方法
+> **ReplenishVerifier: LP-Structure-Grounded Verification for LLM-Based Replenishment Optimization Modeling**  
+> **ReplenishVerifier：面向库存补货优化的大语言模型 LP 结构验证增强方法**
 
-核心思想：现有 LLM-for-OR 方法通常只检查 solver code 是否可执行、是否可行、目标值是否正确；本项目进一步解析 PuLP 导出的 `.lp` 文件，检查库存补货优化模型中的领域结构是否完整，例如库存平衡、订货变量、缺货变量、容量约束、固定订货成本、binary 订货变量、Big-M 连接约束等。
+本项目聚焦 **inventory replenishment optimization**，不是通用 LLM-for-OR 框架。它从 LLM 生成的 PuLP 代码中导出 LP artifact，解析 variables、constraints、objective、binary declarations 和 bounds，并检查补货模型中常见的结构：inventory balance、shortage/backlog、capacity、fixed ordering cost、binary setup/order trigger、Big-M linking 等。
 
-## 1. 功能
+这些 LP 结构证据可用于：
 
-当前最小闭环支持：
+- candidate selection；
+- missing-structure feedback；
+- repair prompt generation；
+- future preference data / DPO / PRM construction。
 
-1. 生成 ReplenishmentOR 风格 benchmark。
-2. 生成 reference PuLP/CBC 模型代码。
-3. 求解 reference 模型并导出 `.lp`。
-4. 解析 `.lp` 文件结构。
-5. 根据 expected structures 执行补货语义结构验证。
-6. 为 LLM 生成自然语言修复反馈。
-7. 对 LLM candidate code 执行、验证、打分、Best-of-K 选择。
-8. 统计实验指标。
+**重要原则：formal candidate selection 不使用 `reference_objective`。** `reference_objective` 只用于最终 evaluation metrics，例如 objective accuracy 和 relative error。
 
-## 2. 支持的补货问题类型
+---
 
-| problem_type | 说明 |
+## 1. 论文定位
+
+ReplenishVerifier 的定位是：
+
+> a replenishment-specific LP-structure supervision layer for LLM-generated optimization models.
+
+它不是：
+
+- 通用 optimization modeling agent；
+- 完整 hallucination detector；
+- 完整 optimization repair system；
+- SIRL / OptArgus / OptiRepair / OR-R1 / StepORLM 的完整复现；
+- 库存补货 policy learning 方法。
+
+它要证明的增量是：**补货语义结构监督是否能提供超出 generic solver feedback、LP artifact statistics、objective consensus、generic hallucination audit 和 generic repair prompt 的信号。**
+
+---
+
+## 2. 与相关工作的区别
+
+| Related line | What it emphasizes | How this project uses it |
+|---|---|---|
+| OptiMUS-like modeling/debugging | LLM + solver + code generation/debugging | 作为通用 solver-agent 背景；本文不做完整 agent 复现 |
+| SIRL-like solver-informed learning | solver execution, LP artifacts, verifiable reward | 实现 `SIRL-like LP-Stats`，只用 generic LP artifact statistics |
+| OR-R1-like voting/RL | valid-code reward, executable reward, majority/objective consensus | 实现 `OR-R1-like Voting`，不使用 reference objective 或补货结构 |
+| StepORLM / GenPRM | process supervision / process reward model | 将 LP structure labels 作为 verifiable process evidence，不声称训练 PRM |
+| OptArgus-like audit | generic optimization-model hallucination/structure audit | 实现 `OptArgus-like Audit`，不检查 inventory balance / Big-M 等补货语义 |
+| OptiRepair-like repair | generic/supply-chain model diagnosis and repair | 实现 `OptiRepair-like Repair-Prompt`，只用 generic repair feedback |
+| Inventory RL / MARLIM / MABIM | inventory policy learning / simulation benchmark | 作为领域背景，不作为直接 baseline |
+
+所有 `*-like` baseline 都是 **lightweight signal-isolation baselines**，不是完整复现原论文系统。
+
+---
+
+## 3. 项目结构
+
+```text
+replenishverifier/
+  benchmark/            # benchmark schemas, templates, generator
+  solver/               # PuLP runner and generated-code executor
+  verifier/             # LP parser, replenishment structure rules, feedback
+  pipeline/             # scoring and candidate-selection utilities
+  experiments/          # all-method evaluation, baselines, tables, case studies
+  llm/                  # code extraction, prompt building, generation, repair generation
+
+scripts/
+  generate_benchmark.py
+  run_candidate_selection.py
+  run_structure_verification.py
+  evaluate_results.py
+
+papers/
+  replenishverifier_draft_zh.md
+  replenishverifier_draft_en.md
+
+docs/
+  literature_audit.md
+  code_and_claim_risk_audit.md
+  paper_experiment_revision_plan.md
+  real_llm_experiment_checklist.md
+
+data/
+  generated/            # generated benchmark splits
+  candidates/           # LLM/demo candidate JSONL files
+
+runs/
+  smoke_literature_driven/
+  paper_tables_literature_driven/
+```
+
+---
+
+## 4. Method pipeline and key modules
+
+Pipeline:
+
+1. LLM generates PuLP candidates.
+2. `solver/code_executor.py` executes candidate code and records solver status/objective.
+3. Candidate model exports a `.lp` file.
+4. `verifier/lp_parser.py` parses variables, constraints, objective, binaries, and bounds.
+5. `verifier/lp_graph.py` builds weak LP-structure evidence.
+6. `verifier/structure_rules.py` emits structure certificates and structure scores.
+7. `experiments/run_all_methods.py` selects candidates with no-reference policies.
+8. `experiments/build_preference_data.py` can build chosen/rejected pairs for future DPO/PRM work.
+
+Key modules:
+
+| Module | Purpose |
 |---|---|
-| `single_period_newsvendor` | 单品单周期，有订货量、剩余库存、缺货变量、持有成本、缺货成本 |
-| `single_item_multi_period` | 单品多周期，有库存平衡、订货量、持有成本 |
-| `single_item_multi_period_shortage` | 单品多周期，允许缺货，有缺货变量和缺货惩罚 |
-| `multi_item_capacity` | 多品多周期，有库存平衡和容量约束 |
-| `fixed_order_cost_big_m` | 多周期固定订货成本，有 binary 订货触发变量和 Big-M 约束 |
+| `replenishverifier/data/structure_schema.py` | problem-type-specific required/optional structure schema |
+| `replenishverifier/verifier/lp_parser.py` | lightweight PuLP LP parser |
+| `replenishverifier/verifier/lp_graph.py` | weak LP graph evidence detectors |
+| `replenishverifier/verifier/structure_rules.py` | structure detection and per-rule certificates |
+| `replenishverifier/verifier/feedback.py` | natural-language structure feedback |
+| `replenishverifier/experiments/audit_leakage.py` | no-reference selection audit |
+| `replenishverifier/experiments/build_preference_data.py` | preference pair construction |
 
-## 3. 安装
+Structure certificates include one record per rule:
+
+```json
+{
+  "rule_name": "big_m_constraint",
+  "required": true,
+  "passed": true,
+  "score": 1.0,
+  "evidence": [{"constraint": "big_m_0", "expr": "Q_0 - 100 Y_0 <= 0"}],
+  "missing_reason": "",
+  "repair_hint": ""
+}
+```
+
+The main `structure_score` is computed only over required structures from the problem-type schema. Optional structures are reported but do not affect the main score.
+
+---
+
+## 5. 安装
+
+推荐 Python 3.10+。
 
 ```bash
 python -m pip install -r requirements.txt
 ```
 
-推荐 Python 3.10+。
-
-## 4. 生成 benchmark
+如果要运行本地 LLM generation / repair generation，还需要：
 
 ```bash
-python scripts/generate_benchmark.py \
-  --output data/benchmark.jsonl \
-  --lp-dir outputs/reference_lp \
-  --n-per-type 20 \
-  --seed 42
+python -m pip install torch transformers accelerate
 ```
 
-每条样本包含：
+本地模型实验不需要 API。若使用本地 Qwen，需要给 `--model` 传本地模型路径，而不是远程模型名。
 
-```json
-{
-  "id": "string",
-  "difficulty": "easy|medium|hard|expert",
-  "problem_type": "string",
-  "natural_language": "string",
-  "parameters": {},
-  "expected_structures": {},
-  "reference_code": "string",
-  "reference_objective": 0.0,
-  "reference_status": "Optimal",
-  "reference_lp_path": "outputs/reference_lp/xxx.lp"
-}
-```
+---
 
-## 5. 验证 reference LP 结构
+## 6. Benchmark 生成
 
-```bash
-python scripts/run_structure_verification.py \
-  --benchmark data/benchmark.jsonl \
-  --out outputs/structure_check.jsonl
-```
-
-## 6. 候选选择
-
-candidate JSONL 格式：
-
-```json
-{
-  "problem_id": "sample_id",
-  "candidate_id": "cand_0",
-  "method": "direct",
-  "generated_text": "modeling trace",
-  "generated_code": "import pulp ... def build_model(): ..."
-}
-```
-
-候选代码建议暴露：
-
-```python
-def build_model():
-    ...
-    return model
-```
-
-运行：
-
-```bash
-python scripts/run_candidate_selection.py \
-  --benchmark data/benchmark.jsonl \
-  --candidates examples/candidates.jsonl \
-  --out outputs/selection.jsonl \
-  --work-dir outputs/candidate_runs
-```
-
-## 7. 统计结果
-
-```bash
-python scripts/evaluate_results.py --results outputs/selection.jsonl
-```
-
-主要指标：
-
-- executable rate
-- feasible / optimal rate
-- objective accuracy
-- average structure completeness
-- per-structure coverage
-- selected candidate score
-
-## 8. Run Experiments
-
-本项目已实现 CCF-B 论文实验所需的主实验、消融实验和低资源分析。支持的方法包括：
-
-- `Direct`：直接选择每个问题的第一个 candidate。
-- `Best-of-K`：选择第一个可执行候选；若没有可执行候选，则选择第一个。
-- `Solver-Filter`：只使用 executable、Optimal、objective accuracy 排序。
-- `Structure-Only`：只使用 LP 结构完整性排序。
-- `ReplenishVerifier-Full`：使用 executable + feasibility + objective + LP structure + semantic consistency 完整得分。
-- `ReplenishVerifier-Repair`：选择 Full 最优候选，并为缺失结构生成 repair prompt。
-
-候选文件为空时，脚本默认会自动生成 CPU 可跑的 demo candidates，便于验证实验流程：
-
-```bash
-python -m replenish.experiments.run_all_methods \
-  --benchmark data/benchmark.jsonl \
-  --candidates data/candidates/example_candidates.jsonl \
-  --out_dir runs/exp_demo \
-  --k_values 1,2,4 \
-  --timeout 30
-```
-
-输出包括 JSONL、CSV、Markdown 三种格式：
-
-```text
-runs/exp_demo/candidate_evaluations.{jsonl,csv,md}
-runs/exp_demo/main_results.{jsonl,csv,md}
-runs/exp_demo/ablation_results.{jsonl,csv,md}
-runs/exp_demo/low_resource_results.{jsonl,csv,md}
-runs/exp_demo/difficulty_results.{jsonl,csv,md}
-runs/exp_demo/benchmark_summary.{jsonl,csv,md}
-runs/exp_demo/repair_prompts.{jsonl,csv,md}
-```
-
-生成论文表格：
-
-```bash
-python -m replenish.experiments.build_paper_tables \
-  --exp_dir runs/exp_demo \
-  --out_dir runs/paper_tables
-```
-
-会生成：
-
-```text
-runs/paper_tables/table1_benchmark.md
-runs/paper_tables/table2_main.md
-runs/paper_tables/table3_ablation.md
-runs/paper_tables/table4_low_resource.md
-runs/paper_tables/table5_difficulty.md
-```
-
-主要指标：
-
-- Executable Rate
-- Feasible/Optimal Rate
-- Objective Accuracy
-- Structure Completeness
-- Inventory Balance Accuracy
-- Constraint Coverage
-- Average Runtime
-- Average Repair Feedback Count
-
-## 9. Real LLM Experiment
-
-正式论文实验中，candidate selection 阶段不能使用 `reference_objective` 作为选择依据。当前实现中：
-
-- `Solver-Filter` 只使用 candidate 自身的 executable、solver status 是否 Optimal、是否返回 objective；
-- `ReplenishVerifier-Full` 只使用 executable、Optimal、LP structure completeness、semantic consistency；
-- objective accuracy 只在选择完成后用于 reporting，不参与 formal selection score。
-
-### 9.1 生成 50 条测试数据
+生成一个 50 条测试集（每类 10 条）：
 
 ```bash
 python scripts/generate_benchmark.py \
@@ -201,18 +163,143 @@ python scripts/generate_benchmark.py \
   --seed 42
 ```
 
-### 9.2 用 Qwen3-8B 生成 K=4 candidates
+建议先跑 50 条、K=4 的真实 LLM candidates，确认候选质量、case study 和运行时间后，再扩大到 300 条或更多。
 
-先安装 LLM 推理依赖：
+支持的问题类型：
+
+| problem_type | 说明 |
+|---|---|
+| `single_period_newsvendor` | 单品单周期，含订货量、剩余库存、缺货变量、持有成本、缺货成本 |
+| `single_item_multi_period` | 单品多周期，含库存平衡、订货量、库存变量、持有成本 |
+| `single_item_multi_period_shortage` | 单品多周期，允许缺货/backlog，含缺货变量与缺货惩罚 |
+| `multi_item_capacity` | 多品多周期，含库存平衡和容量约束 |
+| `fixed_order_cost_big_m` | 多周期固定订货成本，含 binary setup/order trigger 和 Big-M 约束 |
+
+---
+
+## 7. Run verifier, certificates, and preference data
+
+验证 reference LP 并生成 structure certificates：
 
 ```bash
-python -m pip install torch transformers accelerate
+python scripts/run_structure_verification.py \
+  --benchmark data/generated/test_50.jsonl \
+  --out runs/structure_check_test_50.jsonl
 ```
 
-然后运行：
+输出中的 `structure_verification.certificates` 包含每条 rule 的：
+
+- `rule_name`
+- `required`
+- `optional`
+- `passed`
+- `score`
+- `evidence`
+- `missing_reason`
+- `repair_hint`
+
+运行完整候选评估后，可构造 preference pairs：
 
 ```bash
-python -m replenish.llm.run_generation \
+python -m replenishverifier.experiments.build_preference_data \
+  --exp_dir runs/qwen3_8b_k4_50 \
+  --out runs/qwen3_8b_k4_50/preference_pairs.jsonl \
+  --min_score_gap 0.10 \
+  --max_pairs_per_problem 3
+```
+
+Preference builder 使用 executable、Optimal、structure completeness 和更少 repair feedback 来构造 chosen/rejected pairs，不使用 reference objective。
+
+---
+
+## 8. Synthetic smoke test
+
+Synthetic demo 只用于验证 pipeline 是否跑通，**不是正式实验结果**，不能写成主论文结论。
+
+```bash
+python -m replenishverifier.experiments.run_all_methods \
+  --benchmark data/generated/test.jsonl \
+  --candidates data/candidates/demo_candidates.jsonl \
+  --out_dir runs/smoke_literature_driven \
+  --k_values 1,2,4 \
+  --timeout 30
+```
+
+分析输出：
+
+```bash
+python -m replenishverifier.experiments.analyze_error_types \
+  --exp_dir runs/smoke_literature_driven
+
+python -m replenishverifier.experiments.extract_case_studies \
+  --exp_dir runs/smoke_literature_driven
+
+python -m replenishverifier.experiments.build_paper_tables \
+  --exp_dir runs/smoke_literature_driven \
+  --out_dir runs/paper_tables_literature_driven
+
+python -m replenishverifier.experiments.audit_leakage \
+  --exp_dir runs/smoke_literature_driven
+```
+
+当前 smoke sanity check 的输出位置：
+
+- `runs/smoke_literature_driven/summary.md`
+- `runs/smoke_literature_driven/case_studies.md`
+- `runs/paper_tables_literature_driven/`
+
+这些结果只能作为 sanity check / appendix illustration。
+
+---
+
+## 9. Strong baseline smoke test
+
+`run_all_methods` 当前包含：
+
+- `Direct`
+- `Best-of-K`
+- `Solver-Filter`
+- `OR-R1-like Voting`
+- `SIRL-like LP-Stats`
+- `OptArgus-like Audit`
+- `OptiRepair-like Repair-Prompt`
+- `Structure-Only`
+- `ReplenishVerifier-Full`
+- `ReplenishVerifier-Repair`
+
+Baseline 定义：
+
+- `Solver-Filter`：只使用 candidate 自身的 executable、solver status 是否 Optimal、是否返回 objective。
+- `OR-R1-like Voting`：使用 executable、Optimal、代码/LP 输出有效性、候选间 objective consensus；不使用 reference objective 或补货结构。
+- `SIRL-like LP-Stats`：只使用 generic LP artifact statistics，例如 LP 是否导出、objective/constraint section、变量/约束/binary/bounds 数量、objective 项数、约束-变量比例。
+- `OptArgus-like Audit`：只检查 generic objective/variables/constraints、empty model、objective 是否含变量、placeholder names、boundedness、generic issue 数量。
+- `OptiRepair-like Repair-Prompt`：只基于 execution/generic audit 生成 generic repair feedback，不生成 inventory balance / Big-M 等补货语义反馈。
+- `Structure-Only`：只使用 replenishment LP structure completeness。
+- `ReplenishVerifier-Full`：使用 executable + Optimal + replenishment-specific LP structure completeness + semantic consistency。
+- `ReplenishVerifier-Repair`：生成 replenishment-specific repair prompts；只有在真实 repaired candidates 被生成并评估后，才能称为二轮 repair 结果。
+
+---
+
+## 10. Real LLM experiment
+
+主实验必须使用真实 LLM candidates。示例流程如下。
+
+### 10.1 生成 50 条 benchmark
+
+```bash
+python scripts/generate_benchmark.py \
+  --output data/generated/test_50.jsonl \
+  --lp-dir runs/lp/test_50 \
+  --n-per-type 10 \
+  --seed 42
+```
+
+### 10.2 用本地或 Hugging Face 模型生成 K=4 candidates
+
+Hugging Face model name 示例：
+
+```bash
+python -m replenishverifier.llm.run_generation \
   --benchmark data/generated/test_50.jsonl \
   --out data/candidates/qwen3_8b_k4_50.jsonl \
   --model Qwen/Qwen3-8B \
@@ -223,18 +310,24 @@ python -m replenish.llm.run_generation \
   --trust_remote_code
 ```
 
-如果你已经把模型下载到本地，也可以把 `--model` 改成本地路径。
-
-生成器会保存：
-
-- `generated_text`：模型原始输出；
-- `generated_code`：从 markdown python 代码块或 `import pulp` / `pulp.LpProblem` 附近提取出的 Python 代码；
-- `error`：生成失败时记录错误，不中断整个流程。
-
-### 9.3 跑所有方法
+本地模型路径示例：
 
 ```bash
-python -m replenish.experiments.run_all_methods \
+python -m replenishverifier.llm.run_generation \
+  --benchmark data/generated/test_50.jsonl \
+  --out data/candidates/local_qwen_k4_50.jsonl \
+  --model /path/to/local/Qwen3-8B \
+  --k 4 \
+  --max_new_tokens 2048 \
+  --temperature 0.2 \
+  --top_p 0.95 \
+  --trust_remote_code
+```
+
+### 10.3 跑所有方法
+
+```bash
+python -m replenishverifier.experiments.run_all_methods \
   --benchmark data/generated/test_50.jsonl \
   --candidates data/candidates/qwen3_8b_k4_50.jsonl \
   --out_dir runs/qwen3_8b_k4_50 \
@@ -242,77 +335,153 @@ python -m replenish.experiments.run_all_methods \
   --timeout 30
 ```
 
-### 9.4 生成论文表格
+可选 objective-consensus ablation：
 
 ```bash
-python -m replenish.experiments.build_paper_tables \
-  --exp_dir runs/qwen3_8b_k4_50 \
-  --out_dir runs/paper_tables
+python -m replenishverifier.experiments.run_all_methods \
+  --benchmark data/generated/test_50.jsonl \
+  --candidates data/candidates/qwen3_8b_k4_50.jsonl \
+  --out_dir runs/qwen3_8b_k4_50_consensus \
+  --k_values 1,2,4 \
+  --timeout 30 \
+  --use_objective_consensus
 ```
 
-### 9.5 检查 objective leakage
+`--use_objective_consensus` 只使用候选之间的 objective clustering，不使用 reference objective。建议作为 appendix ablation。
 
-```bash
-python -m replenish.experiments.audit_leakage \
-  --exp_dir runs/qwen3_8b_k4_50
-```
-
-### 9.6 公平比较方式
-
-- `Direct`：按 candidate 顺序选择第一个候选，不看 solver、不看结构、不看 reference objective。
-- `Best-of-K`：选择第一个可执行候选，不看结构、不看 reference objective。
-- `Solver-Filter`：使用 candidate 自身的执行状态和 solver status，不看 reference objective。
-- `SIRL-like LP-Stats`：模拟 solver + generic LP artifact feedback，只使用 LP 是否导出、objective/constraint section 是否存在、变量/约束/binary/bounds 数量等通用统计，不使用补货语义。
-- `OptArgus-like Audit`：模拟通用 hallucination / structural consistency auditing，只检查 objective、variables、constraints、empty model、可疑变量名、boundedness 等通用问题，不使用补货语义。
-- `OptiRepair-like Repair-Prompt`：模拟通用 optimization repair prompt，基于执行错误和 generic audit issue 生成通用修复建议，不检查 inventory balance / Big-M 等补货结构。
-- `ReplenishVerifier-Full`：使用 solver execution + replenishment-specific LP structure verification + semantic consistency，不看 reference objective。
-
-强 baseline 的目的，是证明 ReplenishVerifier 的收益来自 replenishment-specific LP structure supervision，而不是普通 solver-in-the-loop、generic LP artifact feedback、generic hallucination auditing 或普通 repair prompt。
-
-错误类型分析：
+### 10.4 分析和表格
 
 ```bash
 python -m replenishverifier.experiments.analyze_error_types \
   --exp_dir runs/qwen3_8b_k4_50
+
+python -m replenishverifier.experiments.extract_case_studies \
+  --exp_dir runs/qwen3_8b_k4_50
+
+python -m replenishverifier.experiments.build_paper_tables \
+  --exp_dir runs/qwen3_8b_k4_50 \
+  --out_dir runs/paper_tables_qwen3_8b_k4_50
+
+python -m replenishverifier.experiments.audit_leakage \
+  --exp_dir runs/qwen3_8b_k4_50 \
+  --write_report
 ```
 
-案例抽取：
+leakage audit 必须通过后，结果才能进入论文。
+
+---
+
+## 11. Repair experiment
+
+二轮 repair 实验需要先有 `repair_prompts.jsonl`，它由 `run_all_methods` 生成。
+
+### 11.1 生成 repaired candidates
 
 ```bash
-python -m replenishverifier.experiments.extract_case_studies \
+python -m replenishverifier.llm.run_repair_generation \
+  --benchmark data/generated/test_50.jsonl \
+  --repair_prompts runs/qwen3_8b_k4_50/repair_prompts.jsonl \
+  --candidates data/candidates/qwen3_8b_k4_50.jsonl \
+  --out data/candidates/qwen3_8b_k4_50_repaired.jsonl \
+  --model Qwen/Qwen3-8B \
+  --max_new_tokens 2048 \
+  --temperature 0.2 \
+  --top_p 0.95 \
+  --trust_remote_code
+```
+
+本地模型同样把 `--model` 换成本地路径。
+
+### 11.2 评估 repaired candidates
+
+```bash
+python -m replenishverifier.experiments.run_all_methods \
+  --benchmark data/generated/test_50.jsonl \
+  --candidates data/candidates/qwen3_8b_k4_50_repaired.jsonl \
+  --out_dir runs/qwen3_8b_k4_50_repaired \
+  --k_values 1,2,4 \
+  --timeout 30
+
+python -m replenishverifier.experiments.audit_leakage \
+  --exp_dir runs/qwen3_8b_k4_50_repaired
+```
+
+如果没有运行这一步，只能说 ReplenishVerifier 生成了 repair prompts，不能说完成了 LLM repair。
+
+---
+
+## 12. Leakage audit
+
+正式 candidate selection 不使用 `reference_objective`。请每次实验后运行：
+
+```bash
+python -m replenishverifier.experiments.audit_leakage \
   --exp_dir runs/qwen3_8b_k4_50
 ```
 
-生成包含强 baseline、错误类型和案例分析的论文表格：
+通过时输出类似：
 
-```bash
-python -m replenishverifier.experiments.build_paper_tables \
-  --exp_dir runs/qwen3_8b_k4_50 \
-  --out_dir runs/paper_tables_strong_baselines
+```text
+LEAKAGE AUDIT PASSED: no reference_objective usage detected in formal selection scores.
 ```
 
-`reference_objective` 仅用于最终报告 `objective_accuracy`，不用于正式候选选择。
+如果 audit 失败，不要使用该实验结果。
 
-## 10. 后续如何接入 LLM
+---
 
-你可以用任意 LLM 生成候选代码，保存成 candidate JSONL。推荐实验设置：
+## 13. 输出文件说明
 
-- Direct
-- CoT
-- Best-of-K
-- Solver-filter
-- Self-repair
-- ReplenishVerifier selection
-- ReplenishVerifier + DPO
+`run_all_methods` 输出：
 
-DPO 数据构造方式：
+```text
+<exp_dir>/candidate_evaluations.{jsonl,csv,md}
+<exp_dir>/main_results.{jsonl,csv,md}
+<exp_dir>/ablation_results.{jsonl,csv,md}
+<exp_dir>/low_resource_results.{jsonl,csv,md}
+<exp_dir>/difficulty_results.{jsonl,csv,md}
+<exp_dir>/benchmark_summary.{jsonl,csv,md}
+<exp_dir>/repair_prompts.{jsonl,csv,md}
+<exp_dir>/summary.md
+<exp_dir>/manifest.json
+<exp_dir>/no_leakage_audit.json  # when audit_leakage --write_report is used
+<exp_dir>/preference_pairs.{jsonl,csv}  # when build_preference_data is used
+```
 
-1. 对同一问题生成 K 个候选。
-2. 对每个候选执行 solver + LP structure verification。
-3. 按综合分排序。
-4. 构造 `chosen > rejected` 偏好对。
-5. 使用 LoRA/DPO 微调 Qwen2.5-3B/7B 或 Qwen3-8B。
+`analyze_error_types` 输出：
 
-## 11. 安全说明
+```text
+<exp_dir>/error_type_details.{jsonl,csv,md}
+<exp_dir>/error_type_summary.{jsonl,csv,md}
+```
 
-`solver/code_executor.py` 会执行候选 Python 代码。该原型默认用于本地可信研究代码。若接入外部 LLM 或不可信用户输入，应使用 Docker、firejail、nsjail 等沙箱。
+`extract_case_studies` 输出：
+
+```text
+<exp_dir>/case_studies.{jsonl,csv,md}
+```
+
+`build_paper_tables` 输出：
+
+```text
+<table_dir>/table1_benchmark.*
+<table_dir>/table2_main.*
+<table_dir>/table3_strong_baselines.*
+<table_dir>/table4_ablation.*
+<table_dir>/table5_low_resource.*
+<table_dir>/table6_difficulty.*
+<table_dir>/table7_error_types.*
+<table_dir>/table8_case_studies.*
+```
+
+---
+
+## 14. 注意事项
+
+1. **不要把 synthetic demo 写成正式结果。** 它只能作为 sanity check。
+2. **主实验必须使用真实 LLM candidates。** 建议先跑 50 条 K=4，再决定是否扩大到 300 条。
+3. **formal selection 不使用 `reference_objective`。** reference objective 只用于 final evaluation。
+4. **`*-like` baselines 是 lightweight baselines。** 不要说完整复现 SIRL、OptArgus、OptiRepair、OR-R1 或 StepORLM。
+5. **ReplenishVerifier-Repair 只有在 repaired candidates 生成并重新评估后，才是真实 repair 实验。** 否则只是 repair prompt generation。
+6. **LP parser 仍是原型。** 它依赖 PuLP LP 格式和部分命名/结构启发式，不保证完整数学正确性。
+7. **代码执行风险。** `solver/code_executor.py` 会执行候选 Python 代码。接入外部不可信代码时应使用 Docker、firejail、nsjail 等沙箱。
+8. **本地模型不需要 API。** 若使用本地 Qwen，请把 `--model` 设置为本地模型目录。

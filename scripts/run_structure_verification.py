@@ -23,7 +23,7 @@ def main():
     rows = []
     for sample in tqdm(read_jsonl(args.benchmark), desc="verify structure"):
         parsed = parse_lp_file(sample["reference_lp_path"])
-        result = check_structures(parsed, sample["expected_structures"])
+        result = check_structures(parsed, sample["expected_structures"], problem_type=sample.get("problem_type"))
         rows.append({
             "id": sample["id"],
             "problem_type": sample["problem_type"],

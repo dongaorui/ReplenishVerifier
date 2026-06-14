@@ -1,0 +1,33 @@
+{
+  "benchmark_path": "data/generated/test.jsonl",
+  "candidates_path": "data/candidates/demo_candidates.jsonl",
+  "out_dir": "runs\\smoke_literature_driven",
+  "n_benchmark": 15,
+  "n_candidates": 75,
+  "methods": [
+    "Direct",
+    "Best-of-K",
+    "Solver-Filter",
+    "OR-R1-like Voting",
+    "SIRL-like LP-Stats",
+    "OptArgus-like Audit",
+    "OptiRepair-like Repair-Prompt",
+    "Structure-Only",
+    "ReplenishVerifier-Full",
+    "ReplenishVerifier-Repair"
+  ],
+  "k_values": [
+    1,
+    2,
+    4
+  ],
+  "use_objective_consensus": false,
+  "files": {
+    "candidate_evaluations": "runs\\smoke_literature_driven\\candidate_evaluations.jsonl",
+    "main_results": "runs\\smoke_literature_driven\\main_results.jsonl",
+    "ablation_results": "runs\\smoke_literature_driven\\ablation_results.jsonl",
+    "low_resource_results": "runs\\smoke_literature_driven\\low_resource_results.jsonl",
+    "difficulty_results": "runs\\smoke_literature_driven\\difficulty_results.jsonl",
+    "repair_prompts": "runs\\smoke_literature_driven\\repair_prompts.jsonl"
+  }
+}

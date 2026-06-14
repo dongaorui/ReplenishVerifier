@@ -2,11 +2,14 @@ import time
 from pathlib import Path
 
 from replenishverifier.experiments.baselines import (
+    code_output_format_valid,
     compute_lp_stats,
+    compute_objective_consensus_scores,
     compute_optargus_audit,
     generic_repair_feedback,
     optargus_like_audit_score,
     optirepair_like_score,
+    or_r1_like_voting_score,
     sirl_like_lp_stats_score,
 )
 from replenishverifier.pipeline.scoring import compute_score
@@ -20,6 +23,7 @@ METHODS = [
     "Direct",
     "Best-of-K",
     "Solver-Filter",
+    "OR-R1-like Voting",
     "SIRL-like LP-Stats",
     "OptArgus-like Audit",
     "OptiRepair-like Repair-Prompt",
@@ -62,7 +66,7 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
         if execution.get("lp_path"):
             try:
                 parsed = parse_lp_file(execution["lp_path"])
-                structure_result = check_structures(parsed, reference["expected_structures"])
+                structure_result = check_structures(parsed, reference["expected_structures"], problem_type=reference.get("problem_type"))
                 structure_dict = structure_result.to_dict()
                 feedback = generate_feedback(structure_result)
             except Exception as exc:
@@ -106,6 +110,9 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
         "difficulty": reference.get("difficulty"),
         "reference_objective": reference.get("reference_objective"),
         "reference_status": reference.get("reference_status"),
+        "code_output_format_valid": code_output_format_valid(candidate.get("generated_code", "")),
+        "objective_consensus_score": 0.0,
+        "or_r1_like_voting_score": 0.0,
     }
     base.update(compute_score(execution, structure_dict, reference.get("reference_objective"), mode="full"))
     solver_score = compute_score(execution, structure_dict, reference.get("reference_objective"), mode="solver_only")
@@ -116,7 +123,42 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
     return base
 
 
-def evaluate_all_candidates(benchmark, candidates_by_problem, work_dir, timeout=30, max_k=None):
+def annotate_consensus_scores(evaluated):
+    """Attach ground-truth-free objective consensus and OR-R1-like scores."""
+    for rows in evaluated.values():
+        consensus_scores = compute_objective_consensus_scores(rows)
+        for row, consensus_score in zip(rows, consensus_scores):
+            row["objective_consensus_score"] = float(consensus_score)
+            row["or_r1_like_voting_score"] = or_r1_like_voting_score(
+                row.get("execution") or {},
+                consensus_score=consensus_score,
+                code_format_valid=row.get("code_output_format_valid", False),
+            )
+    return evaluated
+
+
+def apply_objective_consensus_to_full_scores(evaluated, weight=0.10):
+    """Optionally blend objective-consensus into ReplenishVerifier-Full selection.
+
+    Consensus is computed only from candidate objectives within the same problem,
+    never from the reference objective.
+    """
+    for rows in evaluated.values():
+        for row in rows:
+            base_score = float(row.get("score", 0.0) or 0.0)
+            consensus = float(row.get("objective_consensus_score", 0.0) or 0.0)
+            row["base_replenishverifier_score"] = base_score
+            row["score"] = float((1.0 - weight) * base_score + weight * consensus)
+            row["selection_score"] = row["score"]
+            row["formal_selection_score"] = row["score"]
+            row["selection_policy"] = (
+                "executable + optimal + LP structure + semantic consistency + "
+                "candidate objective consensus; no reference objective"
+            )
+    return evaluated
+
+
+def evaluate_all_candidates(benchmark, candidates_by_problem, work_dir, timeout=30, max_k=None, use_objective_consensus=False):
     evaluated = {}
     for pid, reference in benchmark.items():
         candidates = sorted(candidates_by_problem.get(pid, []), key=candidate_sort_key)
@@ -126,6 +168,9 @@ def evaluate_all_candidates(benchmark, candidates_by_problem, work_dir, timeout=
         for candidate in candidates:
             rows.append(evaluate_candidate(candidate, reference, work_dir=work_dir, timeout=timeout))
         evaluated[pid] = rows
+    annotate_consensus_scores(evaluated)
+    if use_objective_consensus:
+        apply_objective_consensus_to_full_scores(evaluated)
     return evaluated
 
 
@@ -169,6 +214,8 @@ def select_for_method(method_name, evaluated_by_problem, benchmark):
             best = executable[0] if executable else rows[0]
         elif method_name == "Solver-Filter":
             best = max(rows, key=lambda row: row.get("solver_only_score", 0.0))
+        elif method_name == "OR-R1-like Voting":
+            best = max(rows, key=lambda row: row.get("or_r1_like_voting_score", 0.0))
         elif method_name == "SIRL-like LP-Stats":
             best = max(rows, key=lambda row: row.get("sirl_like_lp_stats_score", 0.0))
         elif method_name == "OptArgus-like Audit":
@@ -184,7 +231,11 @@ def select_for_method(method_name, evaluated_by_problem, benchmark):
 
         best = dict(best)
         best["method_name"] = method_name
-        if method_name == "SIRL-like LP-Stats":
+        if method_name == "OR-R1-like Voting":
+            best["score"] = best.get("or_r1_like_voting_score", 0.0)
+            best["selection_score"] = best["score"]
+            best["selection_policy"] = "executable + optimal + valid code/LP output + candidate objective consensus; no replenishment semantics; no reference objective"
+        elif method_name == "SIRL-like LP-Stats":
             best["score"] = best.get("sirl_like_lp_stats_score", 0.0)
             best["selection_score"] = best["score"]
             best["selection_policy"] = "generic solver + LP artifact statistics; no replenishment semantics; no reference objective"

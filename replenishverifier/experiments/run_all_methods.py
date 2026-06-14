@@ -155,7 +155,7 @@ def save_summary_csv(path, rows):
         writer.writerows(rows)
 
 
-def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=30, max_k=None, demo_if_empty=True):
+def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=30, max_k=None, demo_if_empty=True, use_objective_consensus=False):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     work_dir = out_dir / "candidate_runs"
@@ -185,6 +185,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
         work_dir=work_dir,
         timeout=timeout,
         max_k=max_k,
+        use_objective_consensus=use_objective_consensus,
     )
     all_evaluated = [row for rows in evaluated_by_problem.values() for row in rows]
     save_result_bundle(out_dir / "candidate_evaluations", all_evaluated, title="All Candidate Evaluations")
@@ -204,6 +205,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
     LOGGER.info("Running ablation study")
     ablation_methods = [
         "Solver-Filter",
+        "OR-R1-like Voting",
         "SIRL-like LP-Stats",
         "OptArgus-like Audit",
         "OptiRepair-like Repair-Prompt",
@@ -228,10 +230,12 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
             work_dir=out_dir / f"candidate_runs_k{k}",
             timeout=timeout,
             max_k=k,
+            use_objective_consensus=use_objective_consensus,
         )
         for method in [
             "Best-of-K",
             "Solver-Filter",
+            "OR-R1-like Voting",
             "SIRL-like LP-Stats",
             "OptArgus-like Audit",
             "OptiRepair-like Repair-Prompt",
@@ -263,6 +267,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
         "n_candidates": len(candidates),
         "methods": METHODS,
         "k_values": k_values,
+        "use_objective_consensus": use_objective_consensus,
         "files": {
             "candidate_evaluations": str(out_dir / "candidate_evaluations.jsonl"),
             "main_results": str(out_dir / "main_results.jsonl"),
@@ -286,6 +291,11 @@ def main():
     parser.add_argument("--timeout", type=int, default=30, help="Timeout in seconds per candidate.")
     parser.add_argument("--max_k", type=int, default=None, help="Optional cap for main-method candidates per problem.")
     parser.add_argument("--no_demo_if_empty", action="store_true", help="Fail instead of generating demo candidates when candidate file is empty.")
+    parser.add_argument(
+        "--use_objective_consensus",
+        action="store_true",
+        help="Blend candidate objective-consensus into ReplenishVerifier-Full selection without using reference objectives.",
+    )
     args = parser.parse_args()
 
     setup_logging()
@@ -297,6 +307,7 @@ def main():
         timeout=args.timeout,
         max_k=args.max_k,
         demo_if_empty=not args.no_demo_if_empty,
+        use_objective_consensus=args.use_objective_consensus,
     )
 
 

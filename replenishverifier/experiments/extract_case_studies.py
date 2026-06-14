@@ -8,6 +8,15 @@ from replenishverifier.utils.io import read_jsonl, write_jsonl
 
 BASELINE_METHODS = [
     "Solver-Filter",
+    "OR-R1-like Voting",
+    "OR-R1-like Voting",
+    "SIRL-like LP-Stats",
+    "OptArgus-like Audit",
+    "OptiRepair-like Repair-Prompt",
+]
+
+
+STRONG_BASELINE_METHODS = [
     "SIRL-like LP-Stats",
     "OptArgus-like Audit",
     "OptiRepair-like Repair-Prompt",
@@ -31,6 +40,25 @@ def short_feedback(row):
     return text[:800]
 
 
+def _case_from_pair(pid, full, base, why_interesting):
+    return {
+        "problem_id": pid,
+        "problem_type": full.get("problem_type"),
+        "difficulty": full.get("difficulty"),
+        "baseline_method": base.get("method_name"),
+        "baseline_candidate": base.get("candidate_id"),
+        "baseline_selection_policy": base.get("selection_policy"),
+        "baseline_structure_score": base.get("structure_score"),
+        "baseline_objective_correct": base.get("objective_correct"),
+        "baseline_missing_structures": (base.get("structure_verification") or {}).get("missing"),
+        "baseline_feedback": short_feedback(base),
+        "full_candidate": full.get("candidate_id"),
+        "full_structure_score": full.get("structure_score"),
+        "full_objective_correct": full.get("objective_correct"),
+        "why_interesting": why_interesting,
+    }
+
+
 def extract_case_studies(exp_dir, max_cases=20):
     exp_dir = Path(exp_dir)
     rows = [row for row in read_jsonl(exp_dir / "main_results.jsonl") if row.get("selected")]
@@ -38,33 +66,47 @@ def extract_case_studies(exp_dir, max_cases=20):
     problem_ids = sorted({row.get("problem_id") for row in rows})
 
     cases = []
+    strong_cases = []
+    solver_filter_cases = []
     for pid in problem_ids:
         full = by_problem_method.get((pid, "ReplenishVerifier-Full"))
         if not full:
             continue
         full_ok = (full.get("structure_score", 0.0) >= 0.999) and bool(full.get("execution", {}).get("executable"))
-        for method in BASELINE_METHODS:
+        if not full_ok:
+            continue
+
+        for method in STRONG_BASELINE_METHODS:
             base = by_problem_method.get((pid, method))
             if not base:
                 continue
             base_bad = base.get("structure_score", 0.0) < 0.999 or not base.get("execution", {}).get("executable")
-            if full_ok and base_bad:
-                cases.append({
-                    "problem_id": pid,
-                    "problem_type": full.get("problem_type"),
-                    "difficulty": full.get("difficulty"),
-                    "baseline_method": method,
-                    "baseline_candidate": base.get("candidate_id"),
-                    "baseline_structure_score": base.get("structure_score"),
-                    "baseline_objective_correct": base.get("objective_correct"),
-                    "baseline_missing_structures": (base.get("structure_verification") or {}).get("missing"),
-                    "baseline_feedback": short_feedback(base),
-                    "full_candidate": full.get("candidate_id"),
-                    "full_structure_score": full.get("structure_score"),
-                    "full_objective_correct": full.get("objective_correct"),
-                    "why_interesting": "Baseline selected a candidate with missing replenishment structures, while ReplenishVerifier-Full selected a structurally complete candidate.",
-                })
-                break
+            if base_bad:
+                strong_cases.append(_case_from_pair(
+                    pid,
+                    full,
+                    base,
+                    "Strong baseline selected a candidate with missing replenishment structures, while ReplenishVerifier-Full selected a structurally complete candidate.",
+                ))
+
+        solver_filter = by_problem_method.get((pid, "Solver-Filter"))
+        if solver_filter:
+            base_bad = solver_filter.get("structure_score", 0.0) < 0.999 or not solver_filter.get("execution", {}).get("executable")
+            if base_bad:
+                solver_filter_cases.append(_case_from_pair(
+                    pid,
+                    full,
+                    solver_filter,
+                    "Solver-only baseline selected a candidate with missing replenishment structures, while ReplenishVerifier-Full selected a structurally complete candidate.",
+                ))
+
+    seen = set()
+    for case in strong_cases + solver_filter_cases:
+        key = (case["problem_id"], case["baseline_method"])
+        if key in seen:
+            continue
+        cases.append(case)
+        seen.add(key)
         if len(cases) >= max_cases:
             break
 

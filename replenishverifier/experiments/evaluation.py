@@ -48,6 +48,8 @@ def flatten_row(row):
         "sirl_like_lp_stats_score": row.get("sirl_like_lp_stats_score"),
         "optargus_like_audit_score": row.get("optargus_like_audit_score"),
         "optirepair_like_repair_score": row.get("optirepair_like_repair_score"),
+        "or_r1_like_voting_score": row.get("or_r1_like_voting_score"),
+        "objective_consensus_score": row.get("objective_consensus_score"),
         "selection_policy": row.get("selection_policy"),
         "uses_reference_objective_for_selection": row.get("uses_reference_objective_for_selection"),
         "runtime_sec": row.get("runtime_sec"),
