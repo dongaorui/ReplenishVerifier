@@ -155,7 +155,7 @@ def save_summary_csv(path, rows):
         writer.writerows(rows)
 
 
-def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=30, max_k=None, demo_if_empty=True, use_objective_consensus=False):
+def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=30, max_k=None, demo_if_empty=True, use_objective_consensus=False, allow_feasible_selection=False):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     work_dir = out_dir / "candidate_runs"
@@ -186,6 +186,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
         timeout=timeout,
         max_k=max_k,
         use_objective_consensus=use_objective_consensus,
+        allow_feasible_selection=allow_feasible_selection,
     )
     all_evaluated = [row for rows in evaluated_by_problem.values() for row in rows]
     save_result_bundle(out_dir / "candidate_evaluations", all_evaluated, title="All Candidate Evaluations")
@@ -193,7 +194,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
     LOGGER.info("Selecting candidates for main methods: %s", ", ".join(METHODS))
     main_rows = []
     for method in METHODS:
-        main_rows.extend(select_for_method(method, evaluated_by_problem, benchmark))
+        main_rows.extend(select_for_method(method, evaluated_by_problem, benchmark, allow_feasible_selection=allow_feasible_selection))
     main_summary = summarize_by_method(main_rows)
     save_result_bundle(out_dir / "main_results", main_rows, summary_rows=main_summary, title="Main Results")
 
@@ -215,7 +216,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
     ]
     ablation_rows = []
     for method in ablation_methods:
-        ablation_rows.extend(select_for_method(method, evaluated_by_problem, benchmark))
+        ablation_rows.extend(select_for_method(method, evaluated_by_problem, benchmark, allow_feasible_selection=allow_feasible_selection))
     ablation_summary = summarize_by_method(ablation_rows)
     save_result_bundle(out_dir / "ablation_results", ablation_rows, summary_rows=ablation_summary, title="Ablation Results")
 
@@ -231,6 +232,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
             timeout=timeout,
             max_k=k,
             use_objective_consensus=use_objective_consensus,
+            allow_feasible_selection=allow_feasible_selection,
         )
         for method in [
             "Best-of-K",
@@ -242,7 +244,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
             "Structure-Only",
             "ReplenishVerifier-Full",
         ]:
-            selected_k = select_for_method(method, eval_k, benchmark)
+            selected_k = select_for_method(method, eval_k, benchmark, allow_feasible_selection=allow_feasible_selection)
             for row in selected_k:
                 row["k"] = k
             low_resource_rows.extend(selected_k)
@@ -296,6 +298,12 @@ def main():
         action="store_true",
         help="Blend candidate objective-consensus into ReplenishVerifier-Full selection without using reference objectives.",
     )
+    parser.add_argument(
+        "--allow_feasible_selection",
+        action="store_true",
+        default=False,
+        help="Allow executable Feasible (non-Optimal) candidates through the Hard Selection Gate. Default false: only executable + Optimal candidates can be selected.",
+    )
     args = parser.parse_args()
 
     setup_logging()
@@ -308,6 +316,7 @@ def main():
         max_k=args.max_k,
         demo_if_empty=not args.no_demo_if_empty,
         use_objective_consensus=args.use_objective_consensus,
+        allow_feasible_selection=args.allow_feasible_selection,
     )
 
 

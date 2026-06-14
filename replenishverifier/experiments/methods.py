@@ -12,7 +12,7 @@ from replenishverifier.experiments.baselines import (
     or_r1_like_voting_score,
     sirl_like_lp_stats_score,
 )
-from replenishverifier.pipeline.scoring import compute_score
+from replenishverifier.pipeline.scoring import compute_score, hard_selection_gate
 from replenishverifier.solver.code_executor import execute_generated_code
 from replenishverifier.verifier.feedback import generate_feedback
 from replenishverifier.verifier.lp_parser import parse_lp_file
@@ -38,7 +38,7 @@ def candidate_sort_key(candidate):
     return cid
 
 
-def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_execution=False):
+def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_execution=False, allow_feasible_selection=False):
     start = time.perf_counter()
     pid = candidate.get("problem_id")
     cid = candidate.get("candidate_id", "candidate")
@@ -114,11 +114,13 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
         "objective_consensus_score": 0.0,
         "or_r1_like_voting_score": 0.0,
     }
-    base.update(compute_score(execution, structure_dict, reference.get("reference_objective"), mode="full"))
-    solver_score = compute_score(execution, structure_dict, reference.get("reference_objective"), mode="solver_only")
-    structure_score = compute_score(execution, structure_dict, reference.get("reference_objective"), mode="structure_only")
+    base.update(compute_score(execution, structure_dict, reference.get("reference_objective"), mode="full", allow_feasible_selection=allow_feasible_selection))
+    solver_score = compute_score(execution, structure_dict, reference.get("reference_objective"), mode="solver_only", allow_feasible_selection=allow_feasible_selection)
+    structure_score = compute_score(execution, structure_dict, reference.get("reference_objective"), mode="structure_only", allow_feasible_selection=allow_feasible_selection)
     base["solver_only_score"] = solver_score["score"]
+    base["raw_solver_only_score"] = solver_score.get("raw_inference_score", solver_score["score"])
     base["structure_only_score"] = structure_score["score"]
+    base["raw_structure_only_score"] = structure_score.get("raw_inference_score", structure_score["score"])
     base["formal_selection_score"] = base["score"]
     return base
 
@@ -137,7 +139,7 @@ def annotate_consensus_scores(evaluated):
     return evaluated
 
 
-def apply_objective_consensus_to_full_scores(evaluated, weight=0.10):
+def apply_objective_consensus_to_full_scores(evaluated, weight=0.10, allow_feasible_selection=False):
     """Optionally blend objective-consensus into ReplenishVerifier-Full selection.
 
     Consensus is computed only from candidate objectives within the same problem,
@@ -145,20 +147,23 @@ def apply_objective_consensus_to_full_scores(evaluated, weight=0.10):
     """
     for rows in evaluated.values():
         for row in rows:
-            base_score = float(row.get("score", 0.0) or 0.0)
+            base_score = float(row.get("raw_inference_score", row.get("score", 0.0)) or 0.0)
             consensus = float(row.get("objective_consensus_score", 0.0) or 0.0)
+            raw_score = float((1.0 - weight) * base_score + weight * consensus)
+            gated_score = hard_selection_gate(row.get("execution") or {}, raw_score, allow_feasible_selection=allow_feasible_selection)
             row["base_replenishverifier_score"] = base_score
-            row["score"] = float((1.0 - weight) * base_score + weight * consensus)
-            row["selection_score"] = row["score"]
-            row["formal_selection_score"] = row["score"]
+            row["raw_inference_score"] = raw_score
+            row["score"] = gated_score
+            row["selection_score"] = gated_score
+            row["formal_selection_score"] = gated_score
             row["selection_policy"] = (
-                "executable + optimal + LP structure + semantic consistency + "
+                "Hard Selection Gate over executable + optimal + LP structure + semantic consistency + "
                 "candidate objective consensus; no reference objective"
             )
     return evaluated
 
 
-def evaluate_all_candidates(benchmark, candidates_by_problem, work_dir, timeout=30, max_k=None, use_objective_consensus=False):
+def evaluate_all_candidates(benchmark, candidates_by_problem, work_dir, timeout=30, max_k=None, use_objective_consensus=False, allow_feasible_selection=False):
     evaluated = {}
     for pid, reference in benchmark.items():
         candidates = sorted(candidates_by_problem.get(pid, []), key=candidate_sort_key)
@@ -166,11 +171,11 @@ def evaluate_all_candidates(benchmark, candidates_by_problem, work_dir, timeout=
             candidates = candidates[:max_k]
         rows = []
         for candidate in candidates:
-            rows.append(evaluate_candidate(candidate, reference, work_dir=work_dir, timeout=timeout))
+            rows.append(evaluate_candidate(candidate, reference, work_dir=work_dir, timeout=timeout, allow_feasible_selection=allow_feasible_selection))
         evaluated[pid] = rows
     annotate_consensus_scores(evaluated)
     if use_objective_consensus:
-        apply_objective_consensus_to_full_scores(evaluated)
+        apply_objective_consensus_to_full_scores(evaluated, allow_feasible_selection=allow_feasible_selection)
     return evaluated
 
 
@@ -201,7 +206,47 @@ def _first_or_empty(pid, reference):
     }
 
 
-def select_for_method(method_name, evaluated_by_problem, benchmark):
+def _method_raw_score(row, method_name):
+    if method_name == "OR-R1-like Voting":
+        return row.get("or_r1_like_voting_score", 0.0)
+    if method_name == "SIRL-like LP-Stats":
+        return row.get("sirl_like_lp_stats_score", 0.0)
+    if method_name == "OptArgus-like Audit":
+        return row.get("optargus_like_audit_score", 0.0)
+    if method_name == "OptiRepair-like Repair-Prompt":
+        return row.get("optirepair_like_repair_score", 0.0)
+    if method_name == "Solver-Filter":
+        return row.get("raw_solver_only_score", row.get("solver_only_score", 0.0))
+    if method_name == "Structure-Only":
+        return row.get("structure_score", row.get("structure_only_score", 0.0))
+    if method_name in {"ReplenishVerifier-Full", "ReplenishVerifier-Repair"}:
+        return row.get("raw_inference_score", row.get("score", 0.0))
+    if method_name in {"Direct", "Best-of-K"}:
+        return 1.0
+    raise ValueError(f"Unknown method: {method_name}")
+
+
+def _method_gated_score(row, method_name, allow_feasible_selection=False):
+    return hard_selection_gate(row.get("execution") or {}, _method_raw_score(row, method_name), allow_feasible_selection=allow_feasible_selection)
+
+
+def _annotate_selected_score(best, method_name, allow_feasible_selection=False):
+    raw_score = float(_method_raw_score(best, method_name) or 0.0)
+    gated_score = _method_gated_score(best, method_name, allow_feasible_selection=allow_feasible_selection)
+    best["raw_inference_score"] = raw_score
+    best["score"] = gated_score
+    best["selection_score"] = gated_score
+    best["formal_selection_score"] = gated_score
+    best["hard_selection_gate"] = {
+        "enabled": True,
+        "allow_feasible_selection": bool(allow_feasible_selection),
+        "rule": "Only executable + Optimal candidates can be selected." if not allow_feasible_selection else "Executable + Optimal candidates can be selected; Feasible is allowed by explicit flag.",
+        "passed": gated_score > 0.0,
+    }
+    return best
+
+
+def select_for_method(method_name, evaluated_by_problem, benchmark, allow_feasible_selection=False):
     selected = []
     for pid, reference in benchmark.items():
         rows = list(evaluated_by_problem.get(pid, []))
@@ -210,56 +255,32 @@ def select_for_method(method_name, evaluated_by_problem, benchmark):
         elif method_name == "Direct":
             best = rows[0]
         elif method_name == "Best-of-K":
+            viable = [row for row in rows if _method_gated_score(row, method_name, allow_feasible_selection=allow_feasible_selection) > 0.0]
             executable = [row for row in rows if row.get("execution", {}).get("executable")]
-            best = executable[0] if executable else rows[0]
-        elif method_name == "Solver-Filter":
-            best = max(rows, key=lambda row: row.get("solver_only_score", 0.0))
-        elif method_name == "OR-R1-like Voting":
-            best = max(rows, key=lambda row: row.get("or_r1_like_voting_score", 0.0))
-        elif method_name == "SIRL-like LP-Stats":
-            best = max(rows, key=lambda row: row.get("sirl_like_lp_stats_score", 0.0))
-        elif method_name == "OptArgus-like Audit":
-            best = max(rows, key=lambda row: row.get("optargus_like_audit_score", 0.0))
-        elif method_name == "OptiRepair-like Repair-Prompt":
-            best = max(rows, key=lambda row: row.get("optirepair_like_repair_score", 0.0))
-        elif method_name == "Structure-Only":
-            best = max(rows, key=lambda row: row.get("structure_only_score", 0.0))
-        elif method_name in {"ReplenishVerifier-Full", "ReplenishVerifier-Repair"}:
-            best = max(rows, key=lambda row: row.get("score", 0.0))
+            best = viable[0] if viable else (executable[0] if executable else rows[0])
         else:
-            raise ValueError(f"Unknown method: {method_name}")
+            best = max(rows, key=lambda row: _method_gated_score(row, method_name, allow_feasible_selection=allow_feasible_selection))
 
         best = dict(best)
         best["method_name"] = method_name
+        _annotate_selected_score(best, method_name, allow_feasible_selection=allow_feasible_selection)
         if method_name == "OR-R1-like Voting":
-            best["score"] = best.get("or_r1_like_voting_score", 0.0)
-            best["selection_score"] = best["score"]
-            best["selection_policy"] = "executable + optimal + valid code/LP output + candidate objective consensus; no replenishment semantics; no reference objective"
+            best["selection_policy"] = "Hard Selection Gate over executable + optimal + valid code/LP output + candidate objective consensus; no replenishment semantics; no reference objective"
         elif method_name == "SIRL-like LP-Stats":
-            best["score"] = best.get("sirl_like_lp_stats_score", 0.0)
-            best["selection_score"] = best["score"]
-            best["selection_policy"] = "generic solver + LP artifact statistics; no replenishment semantics; no reference objective"
+            best["selection_policy"] = "Hard Selection Gate over generic solver + LP artifact statistics; no replenishment semantics; no reference objective"
         elif method_name == "OptArgus-like Audit":
-            best["score"] = best.get("optargus_like_audit_score", 0.0)
-            best["selection_score"] = best["score"]
-            best["selection_policy"] = "generic hallucination audit signals; no replenishment semantics; no reference objective"
+            best["selection_policy"] = "Hard Selection Gate over generic hallucination audit signals; no replenishment semantics; no reference objective"
         elif method_name == "OptiRepair-like Repair-Prompt":
-            best["score"] = best.get("optirepair_like_repair_score", 0.0)
-            best["selection_score"] = best["score"]
-            best["selection_policy"] = "generic repair-readiness score from execution and audit issues; no replenishment semantics; no reference objective"
+            best["selection_policy"] = "Hard Selection Gate over generic repair-readiness score from execution and audit issues; no replenishment semantics; no reference objective"
             best["feedback"] = best.get("generic_repair_feedback", best.get("feedback", ""))
         elif method_name == "Solver-Filter":
-            best["score"] = best.get("solver_only_score", 0.0)
-            best["selection_score"] = best["score"]
-            best["selection_policy"] = "executable > optimal > has_objective; no reference objective"
+            best["selection_policy"] = "Hard Selection Gate over executable > optimal > has_objective; no reference objective"
         elif method_name == "Structure-Only":
-            best["score"] = best.get("structure_only_score", 0.0)
-            best["selection_score"] = best["score"]
-            best["selection_policy"] = "replenishment LP structure completeness only; no reference objective"
+            best["selection_policy"] = "Hard Selection Gate over replenishment LP structure completeness only; no reference objective"
         elif method_name == "Direct":
-            best["selection_policy"] = "candidate order only; no reference objective"
+            best["selection_policy"] = "candidate order only, with Hard Selection Gate for formal score; no reference objective"
         elif method_name == "Best-of-K":
-            best["selection_policy"] = "first executable candidate in order; no reference objective"
+            best["selection_policy"] = "first executable/optimal candidate when available, with Hard Selection Gate for formal score; no reference objective"
         best["uses_reference_objective_for_selection"] = False
         best["selected"] = True
         selected.append(best)
@@ -281,11 +302,15 @@ def build_repair_prompts(rows):
             "candidate_method": row.get("candidate_method"),
             "repair_feedback_count": len(missing),
             "missing_structures": missing,
+            "low_score_required": structure.get("low_score_required", []),
+            "structure_certificates": structure.get("certificates", []),
+            "evidence_strength_by_rule": {cert.get("rule_name"): cert.get("evidence_strength") for cert in structure.get("certificates", [])},
             "feedback": row.get("feedback", ""),
             "repair_prompt": (
                 "You are fixing a PuLP optimization model for an inventory replenishment problem.\n"
                 "Revise the generated code according to the structure feedback below.\n"
-                "Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.\n\n"
+                "Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.\n"
+                "Explicitly name every PuLP constraint; do not rely on anonymous _C1/_C2 names.\n\n"
                 f"Problem ID: {row.get('problem_id')}\n"
                 f"Candidate ID: {row.get('candidate_id')}\n\n"
                 f"Feedback:\n{row.get('feedback', '')}\n"

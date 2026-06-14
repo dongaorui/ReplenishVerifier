@@ -1,7 +1,8 @@
-"""Weak LP-structure graph evidence for replenishment verification.
+"""Incidence-based weak LP-structure graph evidence.
 
-The graph utilities intentionally provide weak evidence only. They complement but
-never replace the main name/rule-based structure checks.
+LPStructureGraph provides only variable-constraint incidence evidence. It is an
+auxiliary signal for ReplenishVerifier certificates, not a complete graph-matching
+verifier and not proof of algebraic equivalence or coefficient-pattern correctness.
 """
 
 import re
@@ -14,6 +15,8 @@ class WeakEvidence:
     found: bool
     confidence: float
     evidence: list
+    evidence_scope: str = "incidence_based_auxiliary"
+    limitation: str = "not_complete_graph_matching_or_algebraic_equivalence"
 
     def to_dict(self):
         return asdict(self)
@@ -46,11 +49,16 @@ class LPStructureGraph:
             has_order = any(v in vars_in_expr for v in continuous_order)
             has_binary = any(v in vars_in_expr for v in binaries)
             if has_order and has_binary:
-                evidence.append({"constraint": cname, "expr": expr, "variables": vars_in_expr[:8]})
+                evidence.append({
+                    "constraint": cname,
+                    "expr": expr,
+                    "variables": vars_in_expr[:8],
+                    "evidence_scope": "incidence_only",
+                })
         return WeakEvidence(
             detector="detect_big_m_like_constraints",
             found=bool(evidence),
-            confidence=0.75 if evidence else 0.0,
+            confidence=0.6 if evidence else 0.0,
             evidence=evidence[:5],
         )
 
@@ -60,7 +68,7 @@ class LPStructureGraph:
         for cname, expr in self.constraints.items():
             vars_in_expr = self.constraint_to_variables.get(cname, [])
             inventory_like = [v for v in vars_in_expr if _looks_inventory_like(v)]
-            has_equal = "=" in expr
+            has_equal = "=" in expr and "<=" not in expr and ">=" not in expr
             has_order = any(_looks_order_like(v) for v in vars_in_expr)
             repeated_family = _has_repeated_time_family(vars_in_expr)
             name_hint = any(term in cname.lower() for term in ["balance", "flow", "inventory"])
@@ -71,8 +79,9 @@ class LPStructureGraph:
                     "variables": vars_in_expr[:10],
                     "inventory_like": inventory_like[:6],
                     "weak_repeated_family": repeated_family,
+                    "evidence_scope": "incidence_only",
                 })
-        confidence = 0.7 if any(item["inventory_like"] for item in evidence) else (0.4 if evidence else 0.0)
+        confidence = 0.6 if any(item["inventory_like"] for item in evidence) else (0.4 if evidence else 0.0)
         return WeakEvidence(
             detector="detect_inventory_recurrence_candidates",
             found=bool(evidence),
@@ -83,11 +92,15 @@ class LPStructureGraph:
     def detect_fixed_cost_binary_terms(self):
         """Find binary variables appearing in the objective."""
         binaries_in_objective = [v for v in self.binary_variables if _contains_var(self.objective, v)]
-        evidence = [{"binary_variable": v, "objective_excerpt": self.objective[:300]} for v in binaries_in_objective]
+        evidence = [{
+            "binary_variable": v,
+            "objective_excerpt": self.objective[:300],
+            "evidence_scope": "objective_incidence_only",
+        } for v in binaries_in_objective]
         return WeakEvidence(
             detector="detect_fixed_cost_binary_terms",
             found=bool(evidence),
-            confidence=0.8 if evidence else 0.0,
+            confidence=0.6 if evidence else 0.0,
             evidence=evidence[:8],
         )
 

@@ -140,17 +140,21 @@ The parser is a lightweight section-level parser rather than a complete LP gramm
 - binary declarations;
 - variable names.
 
-This design is sufficient for the current prototype but remains dependent on the LP format and naming conventions. Future work can replace it with a fuller LP/MPS parser or graph-based analysis over variable-constraint incidence.
+This design is sufficient for the current prototype but remains dependent on the LP format and naming conventions. PuLP constraints without explicit names are exported as `_C1/_C2`; the implementation now preserves these constraints but treats auto-generated names as non-semantic evidence. The prompt therefore requires explicit string names for all PuLP constraints. Future work can replace the parser with a fuller LP/MPS parser.
+
+The current LPStructureGraph provides only incidence-based auxiliary evidence. It is not a complete graph-matching verifier and cannot fully establish algebraic equivalence. Stronger graph matching and coefficient-pattern verification are left for future work.
 
 ### 4.3 Replenishment Structure Rules
 
-Structure detection combines three types of evidence:
+Structure detection combines layered evidence:
 
 1. **Variable-name hints.** Standard names such as `Q/I/B/Y` and descriptive names such as `order_qty`, `inventory`, `stock`, `backlog`, and `setup`.
 2. **Constraint-name hints.** Names such as `inventory_balance`, `flow`, `capacity`, `link`, `big_m`, and `setup`.
-3. **LP artifact context.** Binary declarations, objective participation, and variable co-occurrence in constraint expressions.
+3. **Expression-supported evidence.** Constraint expressions must contain the relevant decision variables and relation patterns, e.g., inventory recurrence, Big-M linking, capacity aggregation, or shortage participation.
+4. **Index and incidence evidence.** Lightweight index-consistency checks identify repeated or adjacent inventory states, and LPStructureGraph contributes incidence-based auxiliary evidence.
+5. **Magnitude evidence.** Big-M rules optionally inspect whether the largest coefficient is plausibly an upper-bound linking coefficient, while leaving bound-aware validation to future work.
 
-These are heuristic high-level structure checks. They do not prove coefficient correctness, indexing correctness, or boundary-condition correctness.
+A structure name alone is treated only as weak evidence. ReplenishVerifier assigns high structural confidence only when the name signal is supported by expression-level or graph-level evidence. The rule-level certificate records `evidence_strength`, matched names, matched expressions, index-consistency warnings, magnitude checks, and repair hints. These are heuristic high-level structure checks. They do not prove coefficient correctness, indexing correctness, or boundary-condition correctness.
 
 ### 4.4 Selection Score
 
@@ -160,7 +164,9 @@ ReplenishVerifier-Full uses the following ground-truth-free score:
 S_{full}(c)=0.25E(c)+0.25Z(c)+0.35SC(c)+0.15Sem(c),
 \]
 
-where \(E(c)\) indicates executability, \(Z(c)\) indicates `Optimal` solver status, \(SC(c)\) is structure completeness over expected structures, and \(Sem(c)\) is a semantic-consistency signal derived from missing structures. This score does not use `reference_objective`.
+where \(E(c)\) indicates executability, \(Z(c)\) indicates `Optimal` solver status, \(SC(c)\) is the average rule-level score over required structures, and \(Sem(c)\) is a semantic-consistency signal derived from missing structures. This raw score does not use `reference_objective`.
+
+The hard selection gate prevents syntactically well-formed but unsolved or infeasible candidates from being selected, while still preserving their structure certificates for diagnosis and repair. By default, only executable + `Optimal` candidates receive a non-zero formal `selection_score`; allowing merely feasible candidates requires an explicit flag.
 
 The implementation also supports `--use_objective_consensus`, which adds a small candidate-objective-consensus signal for ReplenishVerifier-Full. This signal clusters candidate objectives within the same problem and never uses the reference objective. It should be treated as an appendix ablation unless it becomes part of the final method.
 
@@ -314,7 +320,16 @@ This section will be filled after real LLM candidate generation and second-round
 | ReplenishVerifier-Repair | second-round LLM repair | `[TO FILL]` | `[TO FILL]` | `[TO FILL]` |
 | OptiRepair-like Repair-Prompt | generic prompt baseline | `[TO FILL]` | `[TO FILL]` | `[TO FILL]` |
 
-ReplenishVerifier-Repair should be reported as actual repair only after repaired candidates are generated and evaluated.
+ReplenishVerifier-Repair should be reported as actual repair only after repaired candidates are generated and evaluated. Dry-run repair outputs are schema checks only and cannot be reported as repair results.
+
+### 6.5 Robustness to Naming Variations
+
+| Setting | Objective Accuracy | Structure Completeness | Inventory Balance Accuracy | Missing Big-M Rate | Missing Capacity Rate |
+|---|---:|---:|---:|---:|---:|
+| Original candidates | `[TO FILL]` | `[TO FILL]` | `[TO FILL]` | `[TO FILL]` | `[TO FILL]` |
+| Renamed candidates | `[TO FILL]` | `[TO FILL]` | `[TO FILL]` | `[TO FILL]` | `[TO FILL]` |
+
+`[TO FILL: naming-variation robustness discussion after real renamed-candidate evaluation]`
 
 ---
 
@@ -350,7 +365,7 @@ Synthetic smoke tests already produce interpretable cases involving missing Big-
 ## 8. Limitations
 
 1. **Dependence on LP format and naming.** The parser targets PuLP-exported LP files and the structure rules still use variable names, constraint names, and objective-variable participation. Descriptive-name fallbacks improve robustness but do not make the parser solver-agnostic.
-2. **Structure correctness is not full mathematical correctness.** A model may contain all high-level structures while still using wrong coefficients, wrong indices, or wrong boundary conditions.
+2. **Structure correctness is not full mathematical correctness.** A model may contain all high-level structures while still using wrong coefficients, wrong indices, or wrong boundary conditions. The current expression-supported checks are not complete algebraic equivalence verification. They identify whether constraints exhibit basic inventory-recurrence, Big-M-linking, or capacity-aggregation patterns, but they cannot fully guarantee coefficient, time-index, or boundary-condition correctness. Stronger coefficient-pattern verification and graph matching are left for future work.
 3. **Limited benchmark coverage.** The current benchmark focuses on five replenishment families and does not yet cover stochastic demand, service levels, lost sales, multi-echelon networks, supplier constraints, transportation costs, or rolling-horizon policies.
 4. **Hand-designed weights.** The scoring weights are interpretable but manually chosen. Future work could learn them from validation data or train a structure-aware process reward model.
 5. **Repair depends on real LLM behavior.** Repair prompts alone do not demonstrate successful repair; repaired candidates must be generated and re-evaluated.

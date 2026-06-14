@@ -475,7 +475,28 @@ LEAKAGE AUDIT PASSED: no reference_objective usage detected in formal selection 
 
 ---
 
-## 14. 注意事项
+## Experiment Operation Guide
+
+For detailed experimental steps, metrics, and interpretation, see:
+
+[docs/experiment_operation_guide.md](docs/experiment_operation_guide.md)
+
+Shortest workflow:
+
+```bash
+# 1. Generate benchmark
+# 2. Generate real LLM candidates
+# 3. Run all methods
+# 4. Analyze error types
+# 5. Extract case studies
+# 6. Run repair experiment
+# 7. Build paper tables
+# 8. Run leakage audit
+```
+
+---
+
+## 15. 注意事项
 
 1. **不要把 synthetic demo 写成正式结果。** 它只能作为 sanity check。
 2. **主实验必须使用真实 LLM candidates。** 建议先跑 50 条 K=4，再决定是否扩大到 300 条。
