@@ -1,0 +1,55 @@
+import json
+
+
+SYSTEM_PROMPT = """You are an expert operations research modeler. Generate correct, executable PuLP code for inventory replenishment optimization problems."""
+
+
+def build_prompt(sample):
+    params = json.dumps(sample.get("parameters", {}), ensure_ascii=False, indent=2)
+    expected = json.dumps(sample.get("expected_structures", {}), ensure_ascii=False, indent=2)
+    return f'''Given the following inventory replenishment optimization problem, write one complete Python program using PuLP.
+
+Problem ID: {sample.get('id')}
+Problem type: {sample.get('problem_type')}
+Difficulty: {sample.get('difficulty')}
+
+Natural language problem:
+{sample.get('natural_language')}
+
+Parameters as JSON:
+{params}
+
+Expected high-level modeling structures as JSON:
+{expected}
+
+Hard requirements:
+1. Use PuLP for modeling and solving.
+2. Use these variable naming conventions whenever the structure is needed:
+   - order variable: Q or Q_i_t
+   - inventory variable: I or I_i_t
+   - shortage/backlog variable: B or B_i_t
+   - binary setup/order trigger variable: Y or Y_i_t
+3. Use these constraint naming conventions whenever the structure is needed:
+   - inventory_balance_t or inventory_balance_i_t
+   - capacity_t
+   - big_m_t
+   - demand_satisfaction_t
+4. The code must contain:
+   - import pulp
+   - import os
+   - prob = pulp.LpProblem(...)
+   - prob.solve(pulp.PULP_CBC_CMD(msg=False))
+   - print("STATUS:", pulp.LpStatus[prob.status])
+   - print("OBJECTIVE:", pulp.value(prob.objective))
+   - if environment variable OUTPUT_LP_PATH exists, run prob.writeLP(os.environ["OUTPUT_LP_PATH"])
+5. Define a function build_model() that returns the PuLP LpProblem object named prob.
+6. In the main block, call build_model(), optionally write the LP using OUTPUT_LP_PATH, solve, and print STATUS and OBJECTIVE.
+7. Only output one complete Python code block. Do not output explanations or multiple code blocks.
+'''
+
+
+def build_chat_messages(sample):
+    return [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": build_prompt(sample)},
+    ]

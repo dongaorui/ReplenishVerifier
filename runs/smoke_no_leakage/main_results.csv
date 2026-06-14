@@ -1,0 +1,271 @@
+method,problem_id,candidate_id,problem_type,difficulty,selected,executable,status,objective,reference_objective,score,objective_correct,relative_error,structure_score,semantic_consistency_score,runtime_sec,repair_feedback_count,error,expected_inventory_balance,detected_inventory_balance,expected_order_variable,detected_order_variable,expected_inventory_variable,detected_inventory_variable,expected_shortage_variable,detected_shortage_variable,expected_capacity_constraint,detected_capacity_constraint,expected_binary_order_variable,detected_binary_order_variable,expected_big_m_constraint,detected_big_m_constraint,expected_lead_time,detected_lead_time,expected_holding_cost,detected_holding_cost,expected_shortage_cost,detected_shortage_cost,expected_fixed_order_cost,detected_fixed_order_cost
+Direct,single_period_newsvendor_0000,cand_0_syntax_error,single_period_newsvendor,easy,True,False,Error,,111.0,0.0,0.0,,0.0,0.0,0.41629729996202514,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_period_newsvendor_0000\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_period_newsvendor_0000\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,single_period_newsvendor_0001,cand_0_syntax_error,single_period_newsvendor,easy,True,False,Error,,122.0,0.0,0.0,,0.0,0.0,0.4197520000161603,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_period_newsvendor_0001\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_period_newsvendor_0001\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,single_period_newsvendor_0002,cand_0_syntax_error,single_period_newsvendor,easy,True,False,Error,,580.0,0.0,0.0,,0.0,0.0,0.4122118999948725,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_period_newsvendor_0002\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_period_newsvendor_0002\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,single_item_multi_period_0000,cand_0_syntax_error,single_item_multi_period,medium,True,False,Error,,192.0,0.0,0.0,,0.0,0.0,0.40216030000010505,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_item_multi_period_0000\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_item_multi_period_0000\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,single_item_multi_period_0001,cand_0_syntax_error,single_item_multi_period,medium,True,False,Error,,876.0,0.0,0.0,,0.0,0.0,0.4333418000023812,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_item_multi_period_0001\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_item_multi_period_0001\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,single_item_multi_period_0002,cand_0_syntax_error,single_item_multi_period,medium,True,False,Error,,140.0,0.0,0.0,,0.0,0.0,0.4203572000260465,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_item_multi_period_0002\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_item_multi_period_0002\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,single_item_multi_period_shortage_0000,cand_0_syntax_error,single_item_multi_period_shortage,medium,True,False,Error,,208.0,0.0,0.0,,0.0,0.0,0.4129489000188187,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_item_multi_period_shortage_0000\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_item_multi_period_shortage_0000\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,single_item_multi_period_shortage_0001,cand_0_syntax_error,single_item_multi_period_shortage,medium,True,False,Error,,235.0,0.0,0.0,,0.0,0.0,0.4080555000109598,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_item_multi_period_shortage_0001\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_item_multi_period_shortage_0001\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,single_item_multi_period_shortage_0002,cand_0_syntax_error,single_item_multi_period_shortage,medium,True,False,Error,,360.0,0.0,0.0,,0.0,0.0,0.4442236000322737,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_item_multi_period_shortage_0002\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\single_item_multi_period_shortage_0002\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,multi_item_capacity_0000,cand_0_syntax_error,multi_item_capacity,hard,True,False,Error,,745.0,0.0,0.0,,0.0,0.0,0.4403862000326626,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\multi_item_capacity_0000\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\multi_item_capacity_0000\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,multi_item_capacity_0001,cand_0_syntax_error,multi_item_capacity,hard,True,False,Error,,426.0,0.0,0.0,,0.0,0.0,0.5345887000439689,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\multi_item_capacity_0001\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\multi_item_capacity_0001\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,multi_item_capacity_0002,cand_0_syntax_error,multi_item_capacity,hard,True,False,Error,,1610.0,0.0,0.0,,0.0,0.0,0.4574712000321597,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\multi_item_capacity_0002\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\multi_item_capacity_0002\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,fixed_order_cost_big_m_0000,cand_0_syntax_error,fixed_order_cost_big_m,hard,True,False,Error,,756.0,0.0,0.0,,0.0,0.0,0.47816190001321957,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\fixed_order_cost_big_m_0000\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\fixed_order_cost_big_m_0000\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,fixed_order_cost_big_m_0001,cand_0_syntax_error,fixed_order_cost_big_m,hard,True,False,Error,,727.0,0.0,0.0,,0.0,0.0,0.4288626000052318,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\fixed_order_cost_big_m_0001\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\fixed_order_cost_big_m_0001\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Direct,fixed_order_cost_big_m_0002,cand_0_syntax_error,fixed_order_cost_big_m,hard,True,False,Error,,843.0,0.0,0.0,,0.0,0.0,0.4306597000104375,0,"Traceback (most recent call last):
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\fixed_order_cost_big_m_0002\cand_0_syntax_error\_runner.py"", line 16, in <module>
+    spec.loader.exec_module(mod)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File ""<frozen importlib._bootstrap_external>"", line 755, in exec_module
+  File ""<frozen importlib._bootstrap_external>"", line 893, in get_code
+  File ""<frozen importlib._bootstrap_external>"", line 823, in source_to_code
+  File ""<frozen importlib._bootstrap>"", line 491, in _call_with_frames_removed
+  File ""\\wsl.localhost\Ubuntu\home\dongaorui\projects\lunwen\runs\smoke_no_leakage\candidate_runs\fixed_order_cost_big_m_0002\cand_0_syntax_error\cand_0_syntax_error.py"", line 1
+    def build_model(:
+                    ^
+SyntaxError: invalid syntax
+",,,,,,,,,,,,,,,,,,,,,,
+Best-of-K,single_period_newsvendor_0000,cand_1_remove_inventory_balance,single_period_newsvendor,easy,True,True,Optimal,0.0,111.0,0.7999999999999999,0.0,1.0,0.6,0.6,0.4428079999634065,2,,False,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False
+Best-of-K,single_period_newsvendor_0001,cand_1_remove_inventory_balance,single_period_newsvendor,easy,True,True,Optimal,0.0,122.0,0.7999999999999999,0.0,1.0,0.6,0.6,0.46482900000410154,2,,False,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False
+Best-of-K,single_period_newsvendor_0002,cand_1_remove_inventory_balance,single_period_newsvendor,easy,True,True,Optimal,0.0,580.0,0.7999999999999999,0.0,1.0,0.6,0.6,0.447202599956654,2,,False,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False
+Best-of-K,single_item_multi_period_0000,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,192.0,1.0,0.0,1.0,1.0,1.0,0.43203980004182085,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+Best-of-K,single_item_multi_period_0001,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,876.0,1.0,0.0,1.0,1.0,1.0,0.443469499994535,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+Best-of-K,single_item_multi_period_0002,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,140.0,1.0,0.0,1.0,1.0,1.0,0.46677549998275936,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+Best-of-K,single_item_multi_period_shortage_0000,cand_1_remove_inventory_balance,single_item_multi_period_shortage,medium,True,True,Optimal,0.0,208.0,0.8333333333333333,0.0,1.0,0.6666666666666666,0.6666666666666666,0.4243309000157751,2,,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False
+Best-of-K,single_item_multi_period_shortage_0001,cand_1_remove_inventory_balance,single_item_multi_period_shortage,medium,True,True,Optimal,0.0,235.0,0.8333333333333333,0.0,1.0,0.6666666666666666,0.6666666666666666,0.43039569997927174,2,,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False
+Best-of-K,single_item_multi_period_shortage_0002,cand_1_remove_inventory_balance,single_item_multi_period_shortage,medium,True,True,Optimal,0.0,360.0,0.8333333333333333,0.0,1.0,0.6666666666666666,0.6666666666666666,0.4416207000031136,2,,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False
+Best-of-K,multi_item_capacity_0000,cand_1_remove_inventory_balance,multi_item_capacity,hard,True,True,Optimal,0.0,745.0,0.9,0.0,1.0,0.8,0.8,0.5141196000040509,1,,True,True,True,True,True,True,False,False,True,False,False,False,False,False,False,False,True,True,False,False,False,False
+Best-of-K,multi_item_capacity_0001,cand_1_remove_inventory_balance,multi_item_capacity,hard,True,True,Optimal,0.0,426.0,0.9,0.0,1.0,0.8,0.8,0.41925080004148185,1,,True,True,True,True,True,True,False,False,True,False,False,False,False,False,False,False,True,True,False,False,False,False
+Best-of-K,multi_item_capacity_0002,cand_1_remove_inventory_balance,multi_item_capacity,hard,True,True,Optimal,0.0,1610.0,0.9,0.0,1.0,0.8,0.8,0.49320470000384375,1,,True,True,True,True,True,True,False,False,True,False,False,False,False,False,False,False,True,True,False,False,False,False
+Best-of-K,fixed_order_cost_big_m_0000,cand_1_remove_inventory_balance,fixed_order_cost_big_m,hard,True,True,Optimal,0.0,756.0,0.7857142857142857,0.0,1.0,0.5714285714285714,0.5714285714285714,0.49446610000450164,3,,True,True,True,True,True,True,False,False,False,False,True,False,True,False,False,False,True,True,False,False,True,False
+Best-of-K,fixed_order_cost_big_m_0001,cand_1_remove_inventory_balance,fixed_order_cost_big_m,hard,True,True,Optimal,0.0,727.0,0.7857142857142857,0.0,1.0,0.5714285714285714,0.5714285714285714,0.42801629996392876,3,,True,True,True,True,True,True,False,False,False,False,True,False,True,False,False,False,True,True,False,False,True,False
+Best-of-K,fixed_order_cost_big_m_0002,cand_1_remove_inventory_balance,fixed_order_cost_big_m,hard,True,True,Optimal,0.0,843.0,0.7857142857142857,0.0,1.0,0.5714285714285714,0.5714285714285714,0.49454020004486665,3,,True,True,True,True,True,True,False,False,False,False,True,False,True,False,False,False,True,True,False,False,True,False
+Solver-Filter,single_period_newsvendor_0000,cand_1_remove_inventory_balance,single_period_newsvendor,easy,True,True,Optimal,0.0,111.0,0.7999999999999999,0.0,1.0,0.6,0.6,0.4428079999634065,2,,False,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False
+Solver-Filter,single_period_newsvendor_0001,cand_1_remove_inventory_balance,single_period_newsvendor,easy,True,True,Optimal,0.0,122.0,0.7999999999999999,0.0,1.0,0.6,0.6,0.46482900000410154,2,,False,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False
+Solver-Filter,single_period_newsvendor_0002,cand_1_remove_inventory_balance,single_period_newsvendor,easy,True,True,Optimal,0.0,580.0,0.7999999999999999,0.0,1.0,0.6,0.6,0.447202599956654,2,,False,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False
+Solver-Filter,single_item_multi_period_0000,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,192.0,1.0,0.0,1.0,1.0,1.0,0.43203980004182085,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+Solver-Filter,single_item_multi_period_0001,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,876.0,1.0,0.0,1.0,1.0,1.0,0.443469499994535,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+Solver-Filter,single_item_multi_period_0002,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,140.0,1.0,0.0,1.0,1.0,1.0,0.46677549998275936,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+Solver-Filter,single_item_multi_period_shortage_0000,cand_1_remove_inventory_balance,single_item_multi_period_shortage,medium,True,True,Optimal,0.0,208.0,0.8333333333333333,0.0,1.0,0.6666666666666666,0.6666666666666666,0.4243309000157751,2,,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False
+Solver-Filter,single_item_multi_period_shortage_0001,cand_1_remove_inventory_balance,single_item_multi_period_shortage,medium,True,True,Optimal,0.0,235.0,0.8333333333333333,0.0,1.0,0.6666666666666666,0.6666666666666666,0.43039569997927174,2,,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False
+Solver-Filter,single_item_multi_period_shortage_0002,cand_1_remove_inventory_balance,single_item_multi_period_shortage,medium,True,True,Optimal,0.0,360.0,0.8333333333333333,0.0,1.0,0.6666666666666666,0.6666666666666666,0.4416207000031136,2,,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,True,True,True,False,False,False
+Solver-Filter,multi_item_capacity_0000,cand_1_remove_inventory_balance,multi_item_capacity,hard,True,True,Optimal,0.0,745.0,0.9,0.0,1.0,0.8,0.8,0.5141196000040509,1,,True,True,True,True,True,True,False,False,True,False,False,False,False,False,False,False,True,True,False,False,False,False
+Solver-Filter,multi_item_capacity_0001,cand_1_remove_inventory_balance,multi_item_capacity,hard,True,True,Optimal,0.0,426.0,0.9,0.0,1.0,0.8,0.8,0.41925080004148185,1,,True,True,True,True,True,True,False,False,True,False,False,False,False,False,False,False,True,True,False,False,False,False
+Solver-Filter,multi_item_capacity_0002,cand_1_remove_inventory_balance,multi_item_capacity,hard,True,True,Optimal,0.0,1610.0,0.9,0.0,1.0,0.8,0.8,0.49320470000384375,1,,True,True,True,True,True,True,False,False,True,False,False,False,False,False,False,False,True,True,False,False,False,False
+Solver-Filter,fixed_order_cost_big_m_0000,cand_1_remove_inventory_balance,fixed_order_cost_big_m,hard,True,True,Optimal,0.0,756.0,0.7857142857142857,0.0,1.0,0.5714285714285714,0.5714285714285714,0.49446610000450164,3,,True,True,True,True,True,True,False,False,False,False,True,False,True,False,False,False,True,True,False,False,True,False
+Solver-Filter,fixed_order_cost_big_m_0001,cand_1_remove_inventory_balance,fixed_order_cost_big_m,hard,True,True,Optimal,0.0,727.0,0.7857142857142857,0.0,1.0,0.5714285714285714,0.5714285714285714,0.42801629996392876,3,,True,True,True,True,True,True,False,False,False,False,True,False,True,False,False,False,True,True,False,False,True,False
+Solver-Filter,fixed_order_cost_big_m_0002,cand_1_remove_inventory_balance,fixed_order_cost_big_m,hard,True,True,Optimal,0.0,843.0,0.7857142857142857,0.0,1.0,0.5714285714285714,0.5714285714285714,0.49454020004486665,3,,True,True,True,True,True,True,False,False,False,False,True,False,True,False,False,False,True,True,False,False,True,False
+Structure-Only,single_period_newsvendor_0000,cand_4_correct,single_period_newsvendor,easy,True,True,Optimal,111.0,111.0,1.0,1.0,0.0,1.0,1.0,0.4621974999899976,0,,False,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+Structure-Only,single_period_newsvendor_0001,cand_4_correct,single_period_newsvendor,easy,True,True,Optimal,122.0,122.0,1.0,1.0,0.0,1.0,1.0,0.4784769000252709,0,,False,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+Structure-Only,single_period_newsvendor_0002,cand_4_correct,single_period_newsvendor,easy,True,True,Optimal,580.0,580.0,1.0,1.0,0.0,1.0,1.0,0.482829499989748,0,,False,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+Structure-Only,single_item_multi_period_0000,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,192.0,1.0,0.0,1.0,1.0,1.0,0.43203980004182085,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+Structure-Only,single_item_multi_period_0001,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,876.0,1.0,0.0,1.0,1.0,1.0,0.443469499994535,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+Structure-Only,single_item_multi_period_0002,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,140.0,1.0,0.0,1.0,1.0,1.0,0.46677549998275936,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+Structure-Only,single_item_multi_period_shortage_0000,cand_4_correct,single_item_multi_period_shortage,medium,True,True,Optimal,208.0,208.0,1.0,1.0,0.0,1.0,1.0,0.484271900029853,0,,True,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+Structure-Only,single_item_multi_period_shortage_0001,cand_4_correct,single_item_multi_period_shortage,medium,True,True,Optimal,235.0,235.0,1.0,1.0,0.0,1.0,1.0,0.46453090000431985,0,,True,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+Structure-Only,single_item_multi_period_shortage_0002,cand_4_correct,single_item_multi_period_shortage,medium,True,True,Optimal,360.0,360.0,1.0,1.0,0.0,1.0,1.0,0.4905895999982022,0,,True,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+Structure-Only,multi_item_capacity_0000,cand_4_correct,multi_item_capacity,hard,True,True,Optimal,745.0,745.0,1.0,1.0,0.0,1.0,1.0,0.5188985000131652,0,,True,True,True,True,True,True,False,False,True,True,False,False,False,False,False,False,True,True,False,False,False,False
+Structure-Only,multi_item_capacity_0001,cand_4_correct,multi_item_capacity,hard,True,True,Optimal,426.0,426.0,1.0,1.0,0.0,1.0,1.0,0.4728635000064969,0,,True,True,True,True,True,True,False,False,True,True,False,False,False,False,False,False,True,True,False,False,False,False
+Structure-Only,multi_item_capacity_0002,cand_4_correct,multi_item_capacity,hard,True,True,Optimal,1610.0,1610.0,1.0,1.0,0.0,1.0,1.0,0.5422854000353254,0,,True,True,True,True,True,True,False,False,True,True,False,False,False,False,False,False,True,True,False,False,False,False
+Structure-Only,fixed_order_cost_big_m_0000,cand_4_correct,fixed_order_cost_big_m,hard,True,True,Optimal,756.0,756.0,1.0,1.0,0.0,1.0,1.0,0.5080980000202544,0,,True,True,True,True,True,True,False,False,False,False,True,True,True,True,False,False,True,True,False,False,True,True
+Structure-Only,fixed_order_cost_big_m_0001,cand_4_correct,fixed_order_cost_big_m,hard,True,True,Optimal,727.0,727.0,1.0,1.0,0.0,1.0,1.0,0.5076669999980368,0,,True,True,True,True,True,True,False,False,False,False,True,True,True,True,False,False,True,True,False,False,True,True
+Structure-Only,fixed_order_cost_big_m_0002,cand_4_correct,fixed_order_cost_big_m,hard,True,True,Optimal,843.0,843.0,1.0,1.0,0.0,1.0,1.0,0.4856900000013411,0,,True,True,True,True,True,True,False,False,False,False,True,True,True,True,False,False,True,True,False,False,True,True
+ReplenishVerifier-Full,single_period_newsvendor_0000,cand_4_correct,single_period_newsvendor,easy,True,True,Optimal,111.0,111.0,1.0,1.0,0.0,1.0,1.0,0.4621974999899976,0,,False,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+ReplenishVerifier-Full,single_period_newsvendor_0001,cand_4_correct,single_period_newsvendor,easy,True,True,Optimal,122.0,122.0,1.0,1.0,0.0,1.0,1.0,0.4784769000252709,0,,False,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+ReplenishVerifier-Full,single_period_newsvendor_0002,cand_4_correct,single_period_newsvendor,easy,True,True,Optimal,580.0,580.0,1.0,1.0,0.0,1.0,1.0,0.482829499989748,0,,False,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+ReplenishVerifier-Full,single_item_multi_period_0000,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,192.0,1.0,0.0,1.0,1.0,1.0,0.43203980004182085,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+ReplenishVerifier-Full,single_item_multi_period_0001,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,876.0,1.0,0.0,1.0,1.0,1.0,0.443469499994535,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+ReplenishVerifier-Full,single_item_multi_period_0002,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,140.0,1.0,0.0,1.0,1.0,1.0,0.46677549998275936,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+ReplenishVerifier-Full,single_item_multi_period_shortage_0000,cand_4_correct,single_item_multi_period_shortage,medium,True,True,Optimal,208.0,208.0,1.0,1.0,0.0,1.0,1.0,0.484271900029853,0,,True,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+ReplenishVerifier-Full,single_item_multi_period_shortage_0001,cand_4_correct,single_item_multi_period_shortage,medium,True,True,Optimal,235.0,235.0,1.0,1.0,0.0,1.0,1.0,0.46453090000431985,0,,True,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+ReplenishVerifier-Full,single_item_multi_period_shortage_0002,cand_4_correct,single_item_multi_period_shortage,medium,True,True,Optimal,360.0,360.0,1.0,1.0,0.0,1.0,1.0,0.4905895999982022,0,,True,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+ReplenishVerifier-Full,multi_item_capacity_0000,cand_4_correct,multi_item_capacity,hard,True,True,Optimal,745.0,745.0,1.0,1.0,0.0,1.0,1.0,0.5188985000131652,0,,True,True,True,True,True,True,False,False,True,True,False,False,False,False,False,False,True,True,False,False,False,False
+ReplenishVerifier-Full,multi_item_capacity_0001,cand_4_correct,multi_item_capacity,hard,True,True,Optimal,426.0,426.0,1.0,1.0,0.0,1.0,1.0,0.4728635000064969,0,,True,True,True,True,True,True,False,False,True,True,False,False,False,False,False,False,True,True,False,False,False,False
+ReplenishVerifier-Full,multi_item_capacity_0002,cand_4_correct,multi_item_capacity,hard,True,True,Optimal,1610.0,1610.0,1.0,1.0,0.0,1.0,1.0,0.5422854000353254,0,,True,True,True,True,True,True,False,False,True,True,False,False,False,False,False,False,True,True,False,False,False,False
+ReplenishVerifier-Full,fixed_order_cost_big_m_0000,cand_4_correct,fixed_order_cost_big_m,hard,True,True,Optimal,756.0,756.0,1.0,1.0,0.0,1.0,1.0,0.5080980000202544,0,,True,True,True,True,True,True,False,False,False,False,True,True,True,True,False,False,True,True,False,False,True,True
+ReplenishVerifier-Full,fixed_order_cost_big_m_0001,cand_4_correct,fixed_order_cost_big_m,hard,True,True,Optimal,727.0,727.0,1.0,1.0,0.0,1.0,1.0,0.5076669999980368,0,,True,True,True,True,True,True,False,False,False,False,True,True,True,True,False,False,True,True,False,False,True,True
+ReplenishVerifier-Full,fixed_order_cost_big_m_0002,cand_4_correct,fixed_order_cost_big_m,hard,True,True,Optimal,843.0,843.0,1.0,1.0,0.0,1.0,1.0,0.4856900000013411,0,,True,True,True,True,True,True,False,False,False,False,True,True,True,True,False,False,True,True,False,False,True,True
+ReplenishVerifier-Repair,single_period_newsvendor_0000,cand_4_correct,single_period_newsvendor,easy,True,True,Optimal,111.0,111.0,1.0,1.0,0.0,1.0,1.0,0.4621974999899976,0,,False,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+ReplenishVerifier-Repair,single_period_newsvendor_0001,cand_4_correct,single_period_newsvendor,easy,True,True,Optimal,122.0,122.0,1.0,1.0,0.0,1.0,1.0,0.4784769000252709,0,,False,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+ReplenishVerifier-Repair,single_period_newsvendor_0002,cand_4_correct,single_period_newsvendor,easy,True,True,Optimal,580.0,580.0,1.0,1.0,0.0,1.0,1.0,0.482829499989748,0,,False,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+ReplenishVerifier-Repair,single_item_multi_period_0000,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,192.0,1.0,0.0,1.0,1.0,1.0,0.43203980004182085,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+ReplenishVerifier-Repair,single_item_multi_period_0001,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,876.0,1.0,0.0,1.0,1.0,1.0,0.443469499994535,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+ReplenishVerifier-Repair,single_item_multi_period_0002,cand_1_remove_inventory_balance,single_item_multi_period,medium,True,True,Optimal,0.0,140.0,1.0,0.0,1.0,1.0,1.0,0.46677549998275936,0,,True,True,True,True,True,True,False,False,False,False,False,False,False,False,False,False,True,True,False,False,False,False
+ReplenishVerifier-Repair,single_item_multi_period_shortage_0000,cand_4_correct,single_item_multi_period_shortage,medium,True,True,Optimal,208.0,208.0,1.0,1.0,0.0,1.0,1.0,0.484271900029853,0,,True,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+ReplenishVerifier-Repair,single_item_multi_period_shortage_0001,cand_4_correct,single_item_multi_period_shortage,medium,True,True,Optimal,235.0,235.0,1.0,1.0,0.0,1.0,1.0,0.46453090000431985,0,,True,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+ReplenishVerifier-Repair,single_item_multi_period_shortage_0002,cand_4_correct,single_item_multi_period_shortage,medium,True,True,Optimal,360.0,360.0,1.0,1.0,0.0,1.0,1.0,0.4905895999982022,0,,True,True,True,True,True,True,True,True,False,False,False,False,False,False,False,False,True,True,True,True,False,False
+ReplenishVerifier-Repair,multi_item_capacity_0000,cand_4_correct,multi_item_capacity,hard,True,True,Optimal,745.0,745.0,1.0,1.0,0.0,1.0,1.0,0.5188985000131652,0,,True,True,True,True,True,True,False,False,True,True,False,False,False,False,False,False,True,True,False,False,False,False
+ReplenishVerifier-Repair,multi_item_capacity_0001,cand_4_correct,multi_item_capacity,hard,True,True,Optimal,426.0,426.0,1.0,1.0,0.0,1.0,1.0,0.4728635000064969,0,,True,True,True,True,True,True,False,False,True,True,False,False,False,False,False,False,True,True,False,False,False,False
+ReplenishVerifier-Repair,multi_item_capacity_0002,cand_4_correct,multi_item_capacity,hard,True,True,Optimal,1610.0,1610.0,1.0,1.0,0.0,1.0,1.0,0.5422854000353254,0,,True,True,True,True,True,True,False,False,True,True,False,False,False,False,False,False,True,True,False,False,False,False
+ReplenishVerifier-Repair,fixed_order_cost_big_m_0000,cand_4_correct,fixed_order_cost_big_m,hard,True,True,Optimal,756.0,756.0,1.0,1.0,0.0,1.0,1.0,0.5080980000202544,0,,True,True,True,True,True,True,False,False,False,False,True,True,True,True,False,False,True,True,False,False,True,True
+ReplenishVerifier-Repair,fixed_order_cost_big_m_0001,cand_4_correct,fixed_order_cost_big_m,hard,True,True,Optimal,727.0,727.0,1.0,1.0,0.0,1.0,1.0,0.5076669999980368,0,,True,True,True,True,True,True,False,False,False,False,True,True,True,True,False,False,True,True,False,False,True,True
+ReplenishVerifier-Repair,fixed_order_cost_big_m_0002,cand_4_correct,fixed_order_cost_big_m,hard,True,True,Optimal,843.0,843.0,1.0,1.0,0.0,1.0,1.0,0.4856900000013411,0,,True,True,True,True,True,True,False,False,False,False,True,True,True,True,False,False,True,True,False,False,True,True

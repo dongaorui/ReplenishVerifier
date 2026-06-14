@@ -1,0 +1,28 @@
+{
+  "benchmark_path": "data/generated/test.jsonl",
+  "candidates_path": "data/candidates/demo_candidates.jsonl",
+  "out_dir": "runs\\smoke",
+  "n_benchmark": 15,
+  "n_candidates": 75,
+  "methods": [
+    "Direct",
+    "Best-of-K",
+    "Solver-Filter",
+    "Structure-Only",
+    "ReplenishVerifier-Full",
+    "ReplenishVerifier-Repair"
+  ],
+  "k_values": [
+    1,
+    2,
+    4
+  ],
+  "files": {
+    "candidate_evaluations": "runs\\smoke\\candidate_evaluations.jsonl",
+    "main_results": "runs\\smoke\\main_results.jsonl",
+    "ablation_results": "runs\\smoke\\ablation_results.jsonl",
+    "low_resource_results": "runs\\smoke\\low_resource_results.jsonl",
+    "difficulty_results": "runs\\smoke\\difficulty_results.jsonl",
+    "repair_prompts": "runs\\smoke\\repair_prompts.jsonl"
+  }
+}
