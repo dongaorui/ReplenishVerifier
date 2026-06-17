@@ -17,6 +17,7 @@ FORMAL_METHODS = {
     "Solver + Structure + Consensus",
     "ReplenishVerifier full",
     "OR-R1-like Voting",
+    "Structure-Grounded Consistency",
     "SIRL-like LP-Stats",
     "OptArgus-like Audit",
     "OptiRepair-like Repair-Prompt",

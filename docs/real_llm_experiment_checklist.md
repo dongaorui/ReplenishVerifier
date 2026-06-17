@@ -1,6 +1,10 @@
 # Real LLM experiment checklist
 
-This checklist gives a reproducible path from real LLM candidate generation to tables and second-round repair. It assumes package name `replenishverifier`.
+This checklist gives a reproducible path from real LLM candidate generation to tables and second-round repair for:
+
+> ReplenishVerifier: Constraint-Level LP-Structure Verification for LLM-Based Supply Chain Replenishment Optimization Modeling
+
+It assumes package name `replenishverifier`. Do not fill paper tables with synthetic/demo numbers. All unfinished results must remain `[TO FILL AFTER REAL LLM EXPERIMENT]`.
 
 ## 0. Principle
 
@@ -33,8 +37,12 @@ python -m replenishverifier.llm.run_generation \
   --max_new_tokens 2048 \
   --temperature 0.2 \
   --top_p 0.95 \
+  --prompt_type hidden_verifier \
+  --seed 42 \
   --trust_remote_code
 ```
+
+Use `hidden_verifier` or `plain` for main experiments because they do not reveal `expected_structures`. Reserve `structured` for guided generation or appendix ablations only. The seed improves reproducibility, but exact determinism is not guaranteed across GPU sampling, Transformers backends, CUDA kernels, hardware, or model versions.
 
 Record in the paper:
 
@@ -88,9 +96,12 @@ python -m replenishverifier.experiments.build_paper_tables \
 
 python -m replenishverifier.experiments.audit_leakage \
   --exp_dir runs/qwen3_8b_k4_50
+
+python -m replenishverifier.experiments.analyze_runtime_overhead \
+  --exp_dir runs/qwen3_8b_k4_50
 ```
 
-The leakage audit must pass before using the results.
+The leakage audit must pass before using the results. Runtime overhead is a future reporting metric; missing timing fields are reported as `NA` and must not be replaced with invented values.
 
 ## 5. Main-table recommendation
 
@@ -102,9 +113,10 @@ Use real LLM candidates for the main table:
 - `OR-R1-like Voting`
 - `SIRL-like LP-Stats`
 - `OptArgus-like Audit`
+- `Structure-Grounded Consistency`
 - `ReplenishVerifier-Full`
 
-Add `ReplenishVerifier-Repair` to the main table only after running actual second-round repair candidates and evaluating them.
+Add `ReplenishVerifier-Repair` to the main table only after running actual second-round repair candidates and evaluating them. Treat every `*-like` baseline as a lightweight signal-isolation baseline, not a faithful reproduction.
 
 Keep these in appendix unless space allows:
 
@@ -115,7 +127,9 @@ Keep these in appendix unless space allows:
 
 ## 6. Generate second-round repair candidates
 
-After `run_all_methods`, use its `repair_prompts.jsonl`:
+After `run_all_methods`, use `repair_prompts.jsonl` for structure-aware repair. For the fair generic-control repair run, use `generic_repair_prompts.jsonl` and pass `--repair_type generic`; generic repair prompts use execution/solver/audit feedback only and do not expose replenishment-specific missing-structure labels.
+
+Structure-aware example:
 
 ```bash
 python -m replenishverifier.llm.run_repair_generation \
@@ -124,6 +138,22 @@ python -m replenishverifier.llm.run_repair_generation \
   --candidates data/candidates/qwen3_8b_k4_50.jsonl \
   --out data/candidates/qwen3_8b_k4_50_repaired.jsonl \
   --model Qwen/Qwen3-8B \
+  --max_new_tokens 2048 \
+  --temperature 0.2 \
+  --top_p 0.95 \
+  --trust_remote_code
+```
+
+Generic-control example uses the same entry point with a different prompt file:
+
+```bash
+python -m replenishverifier.llm.run_repair_generation \
+  --benchmark data/generated/test_50.jsonl \
+  --repair_prompts runs/qwen3_8b_k4_50/generic_repair_prompts.jsonl \
+  --candidates data/candidates/qwen3_8b_k4_50.jsonl \
+  --out data/candidates/qwen3_8b_k4_50_generic_repaired.jsonl \
+  --model Qwen/Qwen3-8B \
+  --repair_type generic \
   --max_new_tokens 2048 \
   --temperature 0.2 \
   --top_p 0.95 \

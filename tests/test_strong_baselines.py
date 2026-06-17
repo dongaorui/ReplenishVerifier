@@ -9,8 +9,8 @@ from replenishverifier.experiments.baselines import (
     or_r1_like_voting_score,
     sirl_like_lp_stats_score,
 )
+from replenishverifier.experiments.methods import reward_components, select_for_method
 from replenishverifier.experiments.extract_case_studies import extract_case_studies
-from replenishverifier.experiments.methods import select_for_method
 from replenishverifier.utils.io import write_jsonl
 from replenishverifier.verifier.lp_parser import parse_lp_text
 
@@ -88,18 +88,25 @@ def test_reward_style_selector_uses_consensus_structure_and_no_reference_objecti
     selected_consensus = select_for_method("Consensus only", {"p0": rows}, {"p0": {"problem_type": "single_item_multi_period", "difficulty": "medium"}})
     selected_structure = select_for_method("Structure only", {"p0": rows}, {"p0": {"problem_type": "single_item_multi_period", "difficulty": "medium"}})
     selected_full = select_for_method("Solver + Structure + Consensus", {"p0": rows}, {"p0": {"problem_type": "single_item_multi_period", "difficulty": "medium"}})
+    selected_grounded = select_for_method("Structure-Grounded Consistency", {"p0": rows}, {"p0": {"problem_type": "single_item_multi_period", "difficulty": "medium"}})
 
     assert selected_consensus[0]["candidate_id"] == "majority_mid_structure_a"
     assert selected_structure[0]["candidate_id"] == "minority_good_structure"
     assert selected_full[0]["candidate_id"]
     assert selected_full[0]["uses_reference_objective_for_selection"] is False
     assert "reference_objective" not in selected_full[0]["reward_components"]
+    assert "reference_objective" not in reward_components(rows[0])
+    assert "Rlp_artifact_structure" in selected_grounded[0]["reward_components"]
+    assert selected_grounded[0]["uses_reference_objective_for_selection"] is False
     assert "no reference objective" in selected_full[0]["selection_policy"]
+    assert "structure-grounded" in selected_grounded[0]["selection_policy"]
+    assert "no reference objective" in selected_grounded[0]["selection_policy"]
 
 
 def test_reward_style_methods_are_in_no_leakage_audit():
     assert "Consensus only" in FORMAL_METHODS
     assert "Solver + Structure + Consensus" in FORMAL_METHODS
+    assert "Structure-Grounded Consistency" in FORMAL_METHODS
     row = {
         "method_name": "Consensus only",
         "selected": True,

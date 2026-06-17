@@ -142,6 +142,8 @@ python -m replenishverifier.llm.run_generation \
   --temperature 0.7 \
   --top_p 0.9 \
   --max_new_tokens 2048 \
+  --prompt_type hidden_verifier \
+  --seed 42 \
   --trust_remote_code
 ```
 
@@ -157,10 +159,10 @@ python -m replenishverifier.llm.generate_candidates \
   --top_p 0.9 \
   --max_new_tokens 2048 \
   --seed 42 \
-  --prompt_type plain_prompt
+  --prompt_type hidden_verifier
 ```
 
-> 注意：当前 `run_generation` CLI 没有 `--seed` 和 `--prompt_type` 参数。如果要完全复现上面的第二套命令，需要先实现对应 CLI 参数或 alias。
+> 注意：主实验推荐 `--prompt_type hidden_verifier` 或 `plain`，二者都不暴露 `expected_structures`。`structured` 会显示 expected structures，只能用于 guided generation 或 appendix ablation，不能作为主实验默认设置。seed 能提高可复现性，但 GPU sampling、Transformers backend、CUDA kernel、硬件和模型版本可能导致完全 deterministic 不能保证；正式实验应保存 raw generations、prompt_type、seed、decoding parameters 和 model path/hash。
 
 ### 输出文件
 
@@ -542,10 +544,11 @@ python -m replenishverifier.llm.run_repair_generation \
   --max_new_tokens 2048 \
   --temperature 0.7 \
   --top_p 0.9 \
+  --repair_type generic \
   --trust_remote_code
 ```
 
-> 当前代码是否已自动输出 `generic_repair_prompts.jsonl` 需要在正式运行前确认；如果没有，需要先实现 generic prompt 导出或从 `repair_prompts.jsonl` 中抽取 generic feedback 字段生成对照文件。
+> `run_all_methods` 会同时输出 structure-aware 的 `repair_prompts.*` 和 generic 的 `generic_repair_prompts.*`。Generic repair 只能使用 execution / solver / generic audit feedback，不能包含 `inventory_balance`、Big-M、fixed-order-cost 等具体补货结构提示；structure-aware repair 才允许使用 missing structures、certificates 和 repair hints。
 
 ### Step 3：重新评估 repaired candidates
 
@@ -656,7 +659,7 @@ python -m replenishverifier.experiments.run_all_methods \
 python -m replenishverifier.experiments.rename_variables_for_robustness \
   --candidates data/candidates/qwen3_8b_k4_real_50.jsonl \
   --out data/candidates/qwen3_8b_k4_real_50_renamed.jsonl \
-  --mode random
+  --mode descriptive_to_anonymous
 
 python -m replenishverifier.experiments.run_all_methods \
   --benchmark data/benchmark/real_50.jsonl \
@@ -701,23 +704,23 @@ python -m replenishverifier.experiments.run_all_methods \
 
 ### 当前实现状态
 
-`run_all_methods` 会执行候选代码、solver、LP parsing、structure checking，但静态检查未确认是否已经单独输出完整 runtime 分解表。建议后续在 candidate evaluation 中记录或补充统计：
+`run_all_methods` 的 candidate evaluation 会记录 runtime 字段，并可用 runtime analyzer 汇总：
 
-- code execution time；
-- solver time；
-- LP export time；
-- LP parsing time；
-- structure checking time；
-- total verifier time。
+- `code_execution_time`；
+- `solver_time`；
+- `solver_lp_export_time`；
+- `lp_parse_time`；
+- `structure_check_time`；
+- `total_candidate_evaluation_time`。
 
-建议新增或使用如下命令：
+使用如下命令：
 
 ```bash
 python -m replenishverifier.experiments.analyze_runtime_overhead \
   --exp_dir runs/qwen3_8b_k4_real_50
 ```
 
-如果当前还没有 `analyze_runtime_overhead` 模块，需要先实现该脚本，再运行。
+缺失字段会在报告中显示为 `NA`，不要提前估计或编造 runtime 数字。
 
 ### 输出文件
 
@@ -746,7 +749,27 @@ python -m replenishverifier.experiments.analyze_runtime_overhead \
 
 ---
 
-## 13. 实验十：Leakage Audit
+## 13. Preference Data 导出（future learning signal）
+
+### 目的
+
+把 no-reference verifier 信号转成 chosen/rejected pairs，供未来 DPO / PRM / LoRA / reranker 等训练使用。只有真正训练并重新评估后，才能声称任何 DPO、LoRA 或 PRM 版本有提升。
+
+### 推荐命令
+
+```bash
+python -m replenishverifier.experiments.build_preference_data \
+  --exp_dir runs/qwen3_8b_k4_real_50 \
+  --out runs/qwen3_8b_k4_real_50/preference_pairs.jsonl \
+  --min_score_gap 0.10 \
+  --max_pairs_per_problem 3
+```
+
+Preference construction 使用 executable status、Optimal status、structure completeness 和 repair-feedback count；不使用 `reference_objective`。输出 metadata 中应包含 `uses_reference_objective_for_preference=False`、`preference_source="replenishment_structure_verifier"`、missing structures、execution status、certificate summary、problem type、difficulty、prompt_type 和 candidate ids。
+
+---
+
+## 14. 实验十：Leakage Audit
 
 ### 目的
 
@@ -791,7 +814,7 @@ python -m replenishverifier.experiments.audit_leakage \
 
 ---
 
-## 14. 实验十一：生成论文表格
+## 15. 实验十一：生成论文表格
 
 ### 目的
 
@@ -831,7 +854,7 @@ python -m replenishverifier.experiments.build_paper_tables \
 
 ---
 
-## 15. 异常情况怎么处理
+## 16. 异常情况怎么处理
 
 ### 所有候选都太好
 

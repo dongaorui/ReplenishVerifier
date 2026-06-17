@@ -15,6 +15,7 @@ from replenishverifier.experiments.evaluation import (
 )
 from replenishverifier.experiments.methods import (
     METHODS,
+    build_generic_repair_prompts,
     build_repair_prompts,
     evaluate_all_candidates,
     select_for_method,
@@ -203,6 +204,11 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
     save_summary_csv(out_dir / "repair_prompts.csv", repair_prompts)
     save_markdown_table(out_dir / "repair_prompts.md", repair_prompts[:50], title="Repair Prompts")
 
+    generic_repair_prompts = build_generic_repair_prompts(all_evaluated)
+    write_jsonl(out_dir / "generic_repair_prompts.jsonl", generic_repair_prompts)
+    save_summary_csv(out_dir / "generic_repair_prompts.csv", generic_repair_prompts)
+    save_markdown_table(out_dir / "generic_repair_prompts.md", generic_repair_prompts[:50], title="Generic Repair Prompts")
+
     LOGGER.info("Running ablation study")
     ablation_methods = [
         "Direct",
@@ -217,6 +223,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
         "ReplenishVerifier full",
         "Solver-Filter",
         "OR-R1-like Voting",
+        "Structure-Grounded Consistency",
         "Structure-Only",
         "ReplenishVerifier-Full",
     ]
@@ -244,6 +251,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
             "Best-of-K",
             "Solver-Filter",
             "OR-R1-like Voting",
+            "Structure-Grounded Consistency",
             "SIRL-like LP-Stats",
             "OptArgus-like Audit",
             "OptiRepair-like Repair-Prompt",
@@ -283,6 +291,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
             "low_resource_results": str(out_dir / "low_resource_results.jsonl"),
             "difficulty_results": str(out_dir / "difficulty_results.jsonl"),
             "repair_prompts": str(out_dir / "repair_prompts.jsonl"),
+            "generic_repair_prompts": str(out_dir / "generic_repair_prompts.jsonl"),
         },
     }
     write_json(out_dir / "manifest.json", manifest)

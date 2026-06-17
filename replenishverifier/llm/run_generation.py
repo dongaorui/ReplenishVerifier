@@ -1,5 +1,6 @@
 import argparse
 import logging
+import random
 from pathlib import Path
 
 from tqdm import tqdm
@@ -11,8 +12,32 @@ from replenishverifier.utils.io import read_jsonl, write_jsonl
 LOGGER = logging.getLogger("replenishverifier.llm")
 
 
+REPRODUCIBILITY_NOTE = (
+    "Seed improves reproducibility, but exact determinism is not guaranteed across GPU sampling, "
+    "Transformers versions, CUDA kernels, hardware, and model backends."
+)
+
+
 def setup_logging():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
+
+
+def set_generation_seed(seed):
+    if seed is None:
+        return
+    random.seed(seed)
+    try:
+        import numpy as np
+        np.random.seed(seed)
+    except Exception:
+        pass
+    try:
+        import torch
+        torch.manual_seed(seed)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(seed)
+    except Exception:
+        pass
 
 
 def load_model_and_tokenizer(model_name_or_path, trust_remote_code=True, dtype="auto"):
@@ -46,14 +71,14 @@ def load_model_and_tokenizer(model_name_or_path, trust_remote_code=True, dtype="
     return model, tokenizer
 
 
-def render_prompt(tokenizer, sample, use_chat_template=True):
-    messages = build_chat_messages(sample)
+def render_prompt(tokenizer, sample, use_chat_template=True, prompt_type="hidden_verifier"):
+    messages = build_chat_messages(sample, prompt_type=prompt_type)
     if use_chat_template and hasattr(tokenizer, "apply_chat_template"):
         try:
             return tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
         except Exception:
             LOGGER.warning("Tokenizer chat template failed; falling back to plain prompt.")
-    return build_prompt(sample)
+    return build_prompt(sample, prompt_type=prompt_type)
 
 
 def generate_one(model, tokenizer, prompt, max_new_tokens=2048, temperature=0.2, top_p=0.95):
@@ -88,6 +113,8 @@ def run_generation(
     top_p=0.95,
     trust_remote_code=True,
     use_chat_template=True,
+    prompt_type="hidden_verifier",
+    seed=None,
 ):
     benchmark = read_jsonl(benchmark_path)
     if max_samples is not None:
@@ -95,10 +122,20 @@ def run_generation(
     if not benchmark:
         raise ValueError(f"No benchmark samples found: {benchmark_path}")
 
+    set_generation_seed(seed)
     model, tokenizer = load_model_and_tokenizer(model_name_or_path, trust_remote_code=trust_remote_code)
     rows = []
+    generation_config = {
+        "prompt_type": prompt_type,
+        "seed": seed,
+        "max_new_tokens": max_new_tokens,
+        "temperature": temperature,
+        "top_p": top_p,
+        "use_chat_template": use_chat_template,
+        "trust_remote_code": trust_remote_code,
+    }
     for sample in tqdm(benchmark, desc="generate candidates"):
-        prompt = render_prompt(tokenizer, sample, use_chat_template=use_chat_template)
+        prompt = render_prompt(tokenizer, sample, use_chat_template=use_chat_template, prompt_type=prompt_type)
         for idx in range(k):
             candidate_id = f"{Path(str(model_name_or_path)).name}_k{idx}"
             row = {
@@ -106,7 +143,11 @@ def run_generation(
                 "candidate_id": candidate_id,
                 "method": "llm_generation",
                 "model_name_or_path": str(model_name_or_path),
+                "prompt_type": prompt_type,
                 "prompt": prompt,
+                "seed": seed,
+                "generation_config": dict(generation_config),
+                "reproducibility_note": REPRODUCIBILITY_NOTE,
                 "generated_text": "",
                 "generated_code": "",
                 "error": None,
@@ -145,6 +186,8 @@ def main():
     parser.add_argument("--trust_remote_code", action="store_true", default=True)
     parser.add_argument("--no_trust_remote_code", action="store_false", dest="trust_remote_code")
     parser.add_argument("--no_chat_template", action="store_false", dest="use_chat_template")
+    parser.add_argument("--prompt_type", choices=["hidden_verifier", "plain", "structured"], default="hidden_verifier")
+    parser.add_argument("--seed", type=int, default=None)
     args = parser.parse_args()
 
     setup_logging()
@@ -159,6 +202,8 @@ def main():
         top_p=args.top_p,
         trust_remote_code=args.trust_remote_code,
         use_chat_template=args.use_chat_template,
+        prompt_type=args.prompt_type,
+        seed=args.seed,
     )
 
 

@@ -3,11 +3,298 @@ from copy import deepcopy
 
 import pulp
 
-from replenishverifier.data.structure_schema import expected_from_schema
+from replenishverifier.data.structure_schema import expected_from_schema, get_structure_schema
 
 
 def expected_for(problem_type):
     return expected_from_schema(problem_type)
+
+
+def _structure_lists(problem_type):
+    schema = get_structure_schema(problem_type)
+    required = sorted(schema["required"])
+    optional = sorted(schema["optional"])
+    return required, optional, sorted(set(required) | set(optional))
+
+
+def semantic_frame(problem_type, params):
+    """Return a replenishment-specific semantic frame for one benchmark instance."""
+    required, optional, structures = _structure_lists(problem_type)
+
+    if problem_type == "single_period_newsvendor":
+        frame = {
+            "sets": {"selling_season": [0], "item": "single_sku"},
+            "parameters": {
+                "demand": params["demand"],
+                "unit_order_cost": params["unit_order_cost"],
+                "holding_cost": params["holding_cost"],
+                "shortage_cost": params["shortage_cost"],
+            },
+            "decision_variables": {
+                "order_quantity": "Q_0: units ordered before demand is realized",
+                "ending_inventory": "I_0: leftover units after satisfying demand",
+                "shortage_or_backlog": "B_0: unmet demand in the selling season",
+            },
+            "objective_terms": [
+                "unit ordering cost for Q_0",
+                "holding cost for leftover inventory I_0",
+                "shortage penalty for unmet demand B_0",
+            ],
+            "constraints": [
+                "single-period demand satisfaction: order quantity plus shortage minus ending inventory equals realized demand",
+                "nonnegative order, inventory, and shortage variables",
+            ],
+            "solver_type": "linear_programming",
+        }
+    elif problem_type == "single_item_multi_period":
+        periods = list(range(params["periods"]))
+        frame = {
+            "sets": {"periods": periods, "item": "single_sku"},
+            "parameters": {
+                "initial_inventory": params["initial_inventory"],
+                "demand_by_period": params["demand"],
+                "unit_order_cost": params["unit_order_cost"],
+                "holding_cost": params["holding_cost"],
+            },
+            "decision_variables": {
+                "order_quantity": "Q_t: replenishment quantity ordered in each period t",
+                "inventory_level": "I_t: ending inventory carried from period t to t+1",
+            },
+            "objective_terms": [
+                "period-by-period unit ordering cost for Q_t",
+                "period-by-period holding cost for ending inventory I_t",
+            ],
+            "constraints": [
+                "inventory balance in every period linking previous inventory, current order, demand, and ending inventory",
+                "nonnegative order and inventory variables",
+            ],
+            "solver_type": "linear_programming",
+        }
+    elif problem_type == "single_item_multi_period_shortage":
+        periods = list(range(params["periods"]))
+        frame = {
+            "sets": {"periods": periods, "item": "single_sku"},
+            "parameters": {
+                "initial_inventory": params["initial_inventory"],
+                "demand_by_period": params["demand"],
+                "unit_order_cost": params["unit_order_cost"],
+                "holding_cost": params["holding_cost"],
+                "shortage_cost": params["shortage_cost"],
+            },
+            "decision_variables": {
+                "order_quantity": "Q_t: replenishment quantity ordered in each period t",
+                "inventory_level": "I_t: positive ending stock after period t",
+                "shortage_or_backlog": "B_t: backlogged unmet demand carried after period t",
+            },
+            "objective_terms": [
+                "period-by-period unit ordering cost for Q_t",
+                "holding cost for positive inventory I_t",
+                "shortage/backorder penalty for B_t",
+            ],
+            "constraints": [
+                "net-inventory balance in every period using I_t minus B_t",
+                "backorder semantics linking previous inventory/backlog to current demand",
+                "nonnegative order, inventory, and backlog variables",
+            ],
+            "solver_type": "linear_programming",
+        }
+    elif problem_type == "multi_item_capacity":
+        periods = list(range(params["periods"]))
+        items = list(range(params["items"]))
+        frame = {
+            "sets": {"items": items, "periods": periods},
+            "parameters": {
+                "initial_inventory_by_item": params["initial_inventory"],
+                "demand_by_item_period": params["demand"],
+                "item_volume": params["volume"],
+                "storage_capacity": params["storage_capacity"],
+                "unit_order_cost_by_item": params["unit_order_cost"],
+                "holding_cost_by_item": params["holding_cost"],
+            },
+            "decision_variables": {
+                "order_quantity": "Q_i_t: replenishment quantity for item i in period t",
+                "inventory_level": "I_i_t: ending inventory of item i in period t",
+            },
+            "objective_terms": [
+                "item-specific ordering cost for Q_i_t",
+                "item-specific holding cost for I_i_t",
+            ],
+            "constraints": [
+                "item-level inventory balance for every item and period",
+                "shared warehouse capacity in every period using item volumes and ending inventory",
+                "nonnegative item-period order and inventory variables",
+            ],
+            "solver_type": "linear_programming",
+        }
+    elif problem_type == "fixed_order_cost_big_m":
+        periods = list(range(params["periods"]))
+        frame = {
+            "sets": {"periods": periods, "item": "single_sku"},
+            "parameters": {
+                "initial_inventory": params["initial_inventory"],
+                "demand_by_period": params["demand"],
+                "unit_order_cost": params["unit_order_cost"],
+                "holding_cost": params["holding_cost"],
+                "fixed_order_cost": params["fixed_order_cost"],
+                "big_m": params["big_m"],
+            },
+            "decision_variables": {
+                "order_quantity": "Q_t: replenishment quantity ordered in period t",
+                "inventory_level": "I_t: ending inventory carried after period t",
+                "order_trigger": "Y_t: binary variable indicating whether an order is placed in period t",
+            },
+            "objective_terms": [
+                "unit ordering cost for Q_t",
+                "holding cost for I_t",
+                "fixed ordering/setup cost charged through binary trigger Y_t",
+            ],
+            "constraints": [
+                "inventory balance in every period",
+                "Big-M linking constraint Q_t <= M * Y_t tying order quantity to the binary trigger",
+                "nonnegative order/inventory variables and binary order-trigger variables",
+            ],
+            "solver_type": "mixed_integer_linear_programming",
+        }
+    else:
+        raise ValueError(f"Unknown problem_type: {problem_type}")
+
+    frame["replenishment_structures"] = structures
+    frame["required_structures"] = required
+    frame["optional_structures"] = optional
+    return frame
+
+
+def replenishment_entities(problem_type, params):
+    """Extract replenishment-domain entities from sampled parameters."""
+    entities = {}
+    if "demand" in params:
+        entities["demand"] = params["demand"]
+    if "initial_inventory" in params:
+        entities["initial_inventory"] = params["initial_inventory"]
+    if "periods" in params:
+        entities["periods"] = list(range(params["periods"]))
+    if "items" in params:
+        entities["items"] = list(range(params["items"]))
+    if "unit_order_cost" in params:
+        entities["unit_order_cost"] = params["unit_order_cost"]
+    if "holding_cost" in params:
+        entities["holding_cost"] = params["holding_cost"]
+    if "shortage_cost" in params:
+        entities["shortage_cost"] = params["shortage_cost"]
+    if "fixed_order_cost" in params:
+        entities["fixed_order_cost"] = params["fixed_order_cost"]
+    if "storage_capacity" in params:
+        entities["storage_capacity"] = params["storage_capacity"]
+    if "volume" in params:
+        entities["item_volume"] = params["volume"]
+        entities["volume"] = params["volume"]
+    if "big_m" in params:
+        entities["big_m"] = params["big_m"]
+    if "lead_time" in params:
+        entities["lead_time"] = params["lead_time"]
+
+    if problem_type in {
+        "single_period_newsvendor",
+        "single_item_multi_period",
+        "single_item_multi_period_shortage",
+        "multi_item_capacity",
+        "fixed_order_cost_big_m",
+    }:
+        entities["order_quantity"] = "Q"
+        entities["inventory_level"] = "I"
+    if problem_type in {"single_period_newsvendor", "single_item_multi_period_shortage"}:
+        entities["shortage_or_backlog"] = "B"
+    return entities
+
+
+def modeling_steps(problem_type, params):
+    """Deterministic LP-structure-grounded modeling steps for labeled data."""
+    if problem_type == "single_period_newsvendor":
+        return [
+            "Define order quantity Q_0, ending inventory I_0, and shortage variable B_0.",
+            "Add the single-period demand satisfaction constraint Q_0 + B_0 - I_0 = demand.",
+            "Minimize unit ordering, holding, and shortage costs over Q_0, I_0, and B_0.",
+            "Require all replenishment quantities, inventory, and shortage variables to be nonnegative.",
+        ]
+    if problem_type == "single_item_multi_period":
+        return [
+            "Define period-indexed order variables Q_t and inventory variables I_t.",
+            "Establish inventory balance constraints for every period using initial or previous inventory, order quantity, and demand.",
+            "Minimize total ordering cost and holding cost across all periods.",
+            "Require order and inventory variables to be nonnegative.",
+        ]
+    if problem_type == "single_item_multi_period_shortage":
+        return [
+            "Define period-indexed order variables Q_t, inventory variables I_t, and shortage/backlog variables B_t.",
+            "Establish net inventory balance constraints that carry both inventory and backlog across periods.",
+            "Add shortage/backlog penalties to the objective together with ordering and holding costs.",
+            "Require order, inventory, and backlog variables to be nonnegative.",
+        ]
+    if problem_type == "multi_item_capacity":
+        return [
+            "Define item-period order variables Q_i_t and inventory variables I_i_t.",
+            "Establish inventory balance constraints for every item and period.",
+            "Add a per-period warehouse capacity constraint using item volumes and ending inventories.",
+            "Minimize item-specific ordering and holding costs subject to shared storage capacity.",
+        ]
+    if problem_type == "fixed_order_cost_big_m":
+        return [
+            "Define period-indexed order variables Q_t and inventory variables I_t.",
+            "Define binary order trigger variables Y_t for whether an order is placed in each period.",
+            "Establish inventory balance constraints for every period.",
+            "Add Big-M linking constraints Q_t <= M * Y_t so positive orders activate the binary trigger.",
+            "Minimize unit ordering, holding, and fixed ordering costs.",
+        ]
+    raise ValueError(f"Unknown problem_type: {problem_type}")
+
+
+def validate_replenishment_instance(row, include_labels=True):
+    """Validate generated replenishment benchmark metadata with lightweight rules."""
+    problem_type = row.get("problem_type")
+    row_id = row.get("id", "<unknown>")
+    prefix = f"Invalid replenishment instance id={row_id!r} problem_type={problem_type!r}"
+
+    if not str(row.get("natural_language") or "").strip():
+        raise ValueError(f"{prefix}: natural_language must be non-empty")
+    try:
+        required, _, _ = _structure_lists(problem_type)
+    except Exception as exc:
+        raise ValueError(f"{prefix}: unknown problem_type") from exc
+
+    if not row.get("semantic_frame"):
+        raise ValueError(f"{prefix}: semantic_frame is required")
+    if not row.get("replenishment_entities"):
+        raise ValueError(f"{prefix}: replenishment_entities is required")
+
+    if include_labels:
+        missing_labels = [
+            key for key in ["expected_structures", "reference_code", "reference_objective", "reference_status"]
+            if key not in row
+        ]
+        if missing_labels:
+            raise ValueError(f"{prefix}: missing labeled fields {missing_labels}")
+    else:
+        leaked = [key for key in ["expected_structures", "reference_code", "reference_objective"] if key in row]
+        if leaked:
+            raise ValueError(f"{prefix}: unlabeled row contains label fields {leaked}")
+
+    entities = row.get("replenishment_entities") or {}
+    required_entities = {
+        "single_period_newsvendor": ["demand", "unit_order_cost", "holding_cost", "shortage_cost"],
+        "single_item_multi_period": ["periods", "initial_inventory", "demand", "unit_order_cost", "holding_cost"],
+        "single_item_multi_period_shortage": ["periods", "initial_inventory", "demand", "unit_order_cost", "holding_cost", "shortage_cost"],
+        "multi_item_capacity": ["items", "volume", "storage_capacity"],
+        "fixed_order_cost_big_m": ["fixed_order_cost", "big_m"],
+    }[problem_type]
+    missing_entities = [key for key in required_entities if key not in entities]
+    if missing_entities:
+        raise ValueError(f"{prefix}: missing replenishment entities {missing_entities}")
+
+    frame_required = set((row.get("semantic_frame") or {}).get("required_structures") or [])
+    missing_structures = sorted(set(required) - frame_required)
+    if missing_structures:
+        raise ValueError(f"{prefix}: semantic_frame missing required structures {missing_structures}")
+    return True
 
 
 def sample_params(problem_type, rng=None):

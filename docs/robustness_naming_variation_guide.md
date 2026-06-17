@@ -73,4 +73,4 @@ English title:
 
 > Robustness to Naming Variations
 
-Keep all result cells as `[TO FILL]` until the renamed-candidate evaluation is actually run on the server. Do not infer results from the existence of the script.
+Keep all result cells as `[TO FILL AFTER REAL LLM EXPERIMENT]` until the renamed-candidate evaluation is actually run on the server. Do not infer results from the existence of the script.

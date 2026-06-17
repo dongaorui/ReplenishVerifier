@@ -5,6 +5,8 @@ from pathlib import Path
 
 from replenishverifier.utils.io import read_jsonl, write_jsonl
 
+PREFERENCE_CONSTRUCTION_VERSION = "2026-06-16.no_reference_structure_v1"
+
 
 def _feedback_count(row):
     structure = row.get("structure_verification") or {}
@@ -22,6 +24,73 @@ def _preference_score(row):
 
 def _candidate_text(row):
     return row.get("generated_text") or row.get("generated_code") or ""
+
+
+def _missing_structures(row):
+    return list((row.get("structure_verification") or {}).get("missing") or [])
+
+
+def _execution_status(row):
+    return (row.get("execution") or {}).get("status")
+
+
+def _certificate_summary(row):
+    certs = (row.get("structure_verification") or {}).get("certificates") or []
+    return [
+        {
+            "rule_name": cert.get("rule_name"),
+            "required": cert.get("required"),
+            "passed": cert.get("passed"),
+            "score": cert.get("score"),
+            "evidence_strength": cert.get("evidence_strength"),
+        }
+        for cert in certs
+    ]
+
+
+def _prompt_type(row):
+    return row.get("prompt_type") or (row.get("generation_config") or {}).get("prompt_type")
+
+
+def _build_pair(pid, chosen, rejected, gap):
+    pair = {
+        "problem_id": pid,
+        "chosen_candidate_id": chosen.get("candidate_id"),
+        "rejected_candidate_id": rejected.get("candidate_id"),
+        "chosen_score": _preference_score(chosen),
+        "rejected_score": _preference_score(rejected),
+        "score_gap": gap,
+        "chosen_structure_score": chosen.get("structure_score"),
+        "rejected_structure_score": rejected.get("structure_score"),
+        "chosen_feedback_count": _feedback_count(chosen),
+        "rejected_feedback_count": _feedback_count(rejected),
+        "chosen": _candidate_text(chosen),
+        "rejected": _candidate_text(rejected),
+        "chosen_missing_structures": _missing_structures(chosen),
+        "rejected_missing_structures": _missing_structures(rejected),
+        "chosen_execution_status": _execution_status(chosen),
+        "rejected_execution_status": _execution_status(rejected),
+        "chosen_structure_certificate_summary": _certificate_summary(chosen),
+        "rejected_structure_certificate_summary": _certificate_summary(rejected),
+        "selection_policy": "preference pairs from executable + optimal + structure completeness + lower repair feedback; no reference objective",
+        "uses_reference_objective_for_preference": False,
+        "preference_source": "replenishment_structure_verifier",
+        "preference_construction_version": PREFERENCE_CONSTRUCTION_VERSION,
+        "problem_type": chosen.get("problem_type") or rejected.get("problem_type"),
+        "difficulty": chosen.get("difficulty") or rejected.get("difficulty"),
+        "prompt_type": _prompt_type(chosen) or _prompt_type(rejected),
+        "candidate_ids": {"chosen": chosen.get("candidate_id"), "rejected": rejected.get("candidate_id")},
+    }
+    pair["metadata"] = {
+        "uses_reference_objective_for_preference": False,
+        "preference_source": pair["preference_source"],
+        "preference_construction_version": pair["preference_construction_version"],
+        "problem_type": pair["problem_type"],
+        "difficulty": pair["difficulty"],
+        "prompt_type": pair["prompt_type"],
+        "candidate_ids": pair["candidate_ids"],
+    }
+    return pair
 
 
 def build_preference_pairs(exp_dir, out_path, min_score_gap=0.10, max_pairs_per_problem=3):
@@ -47,22 +116,7 @@ def build_preference_pairs(exp_dir, out_path, min_score_gap=0.10, max_pairs_per_
                     continue
                 if chosen.get("candidate_id") == rejected.get("candidate_id"):
                     continue
-                pairs.append({
-                    "problem_id": pid,
-                    "chosen_candidate_id": chosen.get("candidate_id"),
-                    "rejected_candidate_id": rejected.get("candidate_id"),
-                    "chosen_score": _preference_score(chosen),
-                    "rejected_score": _preference_score(rejected),
-                    "score_gap": gap,
-                    "chosen_structure_score": chosen.get("structure_score"),
-                    "rejected_structure_score": rejected.get("structure_score"),
-                    "chosen_feedback_count": _feedback_count(chosen),
-                    "rejected_feedback_count": _feedback_count(rejected),
-                    "chosen": _candidate_text(chosen),
-                    "rejected": _candidate_text(rejected),
-                    "selection_policy": "preference pairs from executable + optimal + structure completeness + lower repair feedback; no reference objective",
-                    "uses_reference_objective_for_preference": False,
-                })
+                pairs.append(_build_pair(pid, chosen, rejected, gap))
                 made += 1
                 break
 
@@ -88,8 +142,17 @@ def write_csv(path, rows):
         "rejected_structure_score",
         "chosen_feedback_count",
         "rejected_feedback_count",
+        "chosen_missing_structures",
+        "rejected_missing_structures",
+        "chosen_execution_status",
+        "rejected_execution_status",
         "selection_policy",
         "uses_reference_objective_for_preference",
+        "preference_source",
+        "preference_construction_version",
+        "problem_type",
+        "difficulty",
+        "prompt_type",
     ]
     with path.open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

@@ -3,6 +3,8 @@ import json
 
 SYSTEM_PROMPT = """You are an expert operations research modeler. Generate correct, executable PuLP code for inventory replenishment optimization problems."""
 
+PROMPT_TYPES = {"structured", "plain", "hidden_verifier"}
+
 
 CONSTRAINT_NAMING_REGULATION = """CRITICAL REGULATION:
 You MUST explicitly provide string names for ALL constraints in PuLP.
@@ -17,39 +19,24 @@ Use descriptive names such as inventory_balance_*, capacity_*, big_m_*, demand_s
 """
 
 
-def build_prompt(sample):
-    params = json.dumps(sample.get("parameters", {}), ensure_ascii=False, indent=2)
-    expected = json.dumps(sample.get("expected_structures", {}), ensure_ascii=False, indent=2)
-    return f'''Given the following inventory replenishment optimization problem, write one complete Python program using PuLP.
+GENERIC_CONSTRAINT_NAMING_GUIDANCE = """Modeling clarity guidance:
+- Give decision variables meaningful names that reflect their optimization role.
+- You should explicitly name every PuLP constraint with a short descriptive string.
+- Do NOT rely on anonymous PuLP constraints such as _C1/_C2.
+- Do not include explanations outside the requested Python code block.
+"""
 
-Problem ID: {sample.get('id')}
-Problem type: {sample.get('problem_type')}
-Difficulty: {sample.get('difficulty')}
 
-Natural language problem:
-{sample.get('natural_language')}
+GENERIC_REPAIR_NAMING_GUIDANCE = """Generic modeling clarity guidance:
+- Use meaningful decision-variable names, but do not rely on task-specific verifier labels.
+- Explicitly name every PuLP constraint with a short descriptive string.
+- Do NOT write anonymous constraints such as prob += expression without a name.
+"""
 
-Parameters as JSON:
-{params}
 
-Expected high-level modeling structures as JSON:
-{expected}
-
-{CONSTRAINT_NAMING_REGULATION}
-Hard requirements:
+PULP_INTERFACE_REQUIREMENTS = """Hard requirements:
 1. Use PuLP for modeling and solving.
-2. Use these variable naming conventions whenever the structure is needed:
-   - order variable: Q or Q_i_t
-   - inventory variable: I or I_i_t
-   - shortage/backlog variable: B or B_i_t
-   - binary setup/order trigger variable: Y or Y_i_t
-3. Use these constraint naming conventions whenever the structure is needed:
-   - inventory_balance_t or inventory_balance_i_t
-   - capacity_t
-   - big_m_t
-   - demand_satisfaction_t
-   - shortage_balance_t
-4. The code must contain:
+2. The code must contain:
    - import pulp
    - import os
    - prob = pulp.LpProblem(...)
@@ -57,16 +44,77 @@ Hard requirements:
    - print("STATUS:", pulp.LpStatus[prob.status])
    - print("OBJECTIVE:", pulp.value(prob.objective))
    - if environment variable OUTPUT_LP_PATH exists, run prob.writeLP(os.environ["OUTPUT_LP_PATH"])
-5. Define a function build_model() that returns the PuLP LpProblem object named prob.
-6. In the main block, call build_model(), optionally write the LP using OUTPUT_LP_PATH, solve, and print STATUS and OBJECTIVE.
-7. Only output one complete Python code block. Do not output explanations or multiple code blocks.
-'''
+3. Define a function build_model() that returns the PuLP LpProblem object named prob.
+4. In the main block, call build_model(), optionally write the LP using OUTPUT_LP_PATH, solve, and print STATUS and OBJECTIVE.
+5. Only output one complete Python code block. Do not output explanations or multiple code blocks.
+"""
 
 
-def build_chat_messages(sample):
+def _validate_prompt_type(prompt_type):
+    if prompt_type not in PROMPT_TYPES:
+        raise ValueError(f"prompt_type must be one of {sorted(PROMPT_TYPES)}, got {prompt_type!r}")
+
+
+def _structured_problem_header(sample):
+    return f"""Problem ID: {sample.get('id')}
+Problem type: {sample.get('problem_type')}
+Difficulty: {sample.get('difficulty')}
+
+Natural language problem:
+{sample.get('natural_language')}
+"""
+
+
+def _plain_problem_header(sample):
+    return f"""Problem ID: {sample.get('id')}
+
+Natural language problem:
+{sample.get('natural_language')}
+"""
+
+
+def _parameters_block(sample):
+    params = json.dumps(sample.get("parameters", {}), ensure_ascii=False, indent=2)
+    return f"""Parameters as JSON:
+{params}
+"""
+
+
+def build_prompt(sample, prompt_type="hidden_verifier"):
+    _validate_prompt_type(prompt_type)
+    params = _parameters_block(sample)
+
+    if prompt_type == "structured":
+        expected = json.dumps(sample.get("expected_structures", {}), ensure_ascii=False, indent=2)
+        return f'''Given the following inventory replenishment optimization problem, write one complete Python program using PuLP.
+
+{_structured_problem_header(sample)}
+{params}
+Expected high-level modeling structures as JSON:
+{expected}
+
+{CONSTRAINT_NAMING_REGULATION}
+{PULP_INTERFACE_REQUIREMENTS}'''
+
+    if prompt_type == "plain":
+        return f'''Given the following optimization problem, write one complete Python program using PuLP.
+
+{_plain_problem_header(sample)}
+{params}
+{PULP_INTERFACE_REQUIREMENTS}'''
+
+    return f'''Given the following optimization problem, write one complete Python program using PuLP.
+
+{_plain_problem_header(sample)}
+{params}
+{GENERIC_CONSTRAINT_NAMING_GUIDANCE}
+{PULP_INTERFACE_REQUIREMENTS}'''
+
+
+def build_chat_messages(sample, prompt_type="hidden_verifier"):
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": build_prompt(sample)},
+        {"role": "user", "content": build_prompt(sample, prompt_type=prompt_type)},
     ]
 
 
@@ -103,9 +151,9 @@ Hard requirements:
 
 def build_generic_repair_prompt(sample, repair_row, original_code=""):
     params = json.dumps(sample.get("parameters", {}), ensure_ascii=False, indent=2)
-    feedback = repair_row.get("generic_repair_feedback") or repair_row.get("feedback") or repair_row.get("repair_prompt") or ""
-    return f'''You are repairing Python PuLP code for an optimization problem using only generic execution and LP-artifact feedback.
-Do not use replenishment-specific missing-structure labels unless they appear in the natural language problem itself.
+    feedback = repair_row.get("generic_repair_feedback") or repair_row.get("feedback") or "- Inspect generic execution, objective, variable, constraint, and solver issues."
+    return f'''You are repairing Python PuLP code for an optimization problem using only generic execution, solver, and LP-artifact feedback.
+Do not use task-specific verifier labels or missing-structure names.
 
 Problem ID: {sample.get('id')}
 Problem type: {sample.get('problem_type')}
@@ -119,13 +167,13 @@ Parameters as JSON:
 
 Original candidate code:
 ```python
-{original_code or repair_row.get('generated_code', '')}
+{original_code or repair_row.get('generated_code', '') or repair_row.get('original_candidate_code', '')}
 ```
 
 Generic feedback:
 {feedback}
 
-{CONSTRAINT_NAMING_REGULATION}
+{GENERIC_REPAIR_NAMING_GUIDANCE}
 Hard requirements:
 1. Return one complete corrected Python program using PuLP.
 2. Preserve build_model(), optional OUTPUT_LP_PATH writeLP, solver call, STATUS and OBJECTIVE prints.

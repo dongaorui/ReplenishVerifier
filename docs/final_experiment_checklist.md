@@ -1,6 +1,6 @@
 # Final Experiment Checklist for ReplenishVerifier
 
-This checklist is the handoff from code hardening to real experiments. It does **not** contain experimental results. Keep every `[TO FILL]` result placeholder in the paper until the corresponding real run has completed.
+This checklist is the handoff from code hardening to real experiments. It does **not** contain experimental results. Keep every `[TO FILL AFTER REAL LLM EXPERIMENT]` result placeholder in the paper until the corresponding real run has completed.
 
 ## 1. Current completed engineering hardening
 
@@ -19,7 +19,7 @@ The current codebase has completed the planned defensive engineering pass:
 - **Repair comparison script**: `replenishverifier.experiments.compare_repair_results` compares before/after evaluated candidate files.
 - **Robustness naming variation guide**: `docs/robustness_naming_variation_guide.md` documents naming-perturbation experiments.
 - **Paper draft safety wording**: English and Chinese drafts now include conservative wording about name-only evidence, graph evidence, expression-supported limitations, Hard Selection Gate, and repair claims.
-- **`[TO FILL]` retained**: real-result placeholders remain in the paper; no repair or robustness results have been fabricated.
+- **`[TO FILL AFTER REAL LLM EXPERIMENT]` retained**: real-result placeholders remain in the paper; no repair or robustness results have been fabricated.
 
 ## 2. Conclusions that must not be written before real experiments
 
@@ -311,4 +311,4 @@ Run robustness and overhead analyses:
 
 ## Final recommendation
 
-The code now has the needed defensive mechanisms and experiment entry points. It does not need another large method redesign before the real experiments. The next step should be to run the smallest real LLM experiment (`real_50`, `K=4`), audit leakage, inspect error types and case studies, and only then update the paper’s `[TO FILL]` result sections.
+The code now has the needed defensive mechanisms and experiment entry points. It does not need another large method redesign before the real experiments. The next step should be to run the smallest real LLM experiment (`real_50`, `K=4`), audit leakage, inspect error types and case studies, and only then update the paper’s `[TO FILL AFTER REAL LLM EXPERIMENT]` result sections.

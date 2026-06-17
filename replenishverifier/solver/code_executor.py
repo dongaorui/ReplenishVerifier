@@ -2,6 +2,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -10,6 +11,7 @@ import importlib.util
 import json
 import pathlib
 import sys
+import time
 import traceback
 
 import pulp
@@ -33,9 +35,13 @@ try:
         raise RuntimeError("build_model() did not return a PuLP LpProblem-like object.")
 
     lp_path.parent.mkdir(parents=True, exist_ok=True)
+    export_start = time.perf_counter()
     model.writeLP(str(lp_path))
+    solver_lp_export_time = time.perf_counter() - export_start
 
+    solve_start = time.perf_counter()
     status_code = model.solve(pulp.PULP_CBC_CMD(msg=False))
+    solver_time = time.perf_counter() - solve_start
     status = pulp.LpStatus.get(status_code, str(status_code))
     obj = pulp.value(model.objective)
     print(json.dumps({
@@ -43,6 +49,8 @@ try:
         "status": status,
         "objective": None if obj is None else float(obj),
         "lp_path": str(lp_path),
+        "solver_lp_export_time": float(solver_lp_export_time),
+        "solver_time": float(solver_time),
         "error": None,
     }, ensure_ascii=False))
 except Exception:
@@ -51,9 +59,24 @@ except Exception:
         "status": "Error",
         "objective": None,
         "lp_path": None,
+        "solver_lp_export_time": None,
+        "solver_time": None,
         "error": traceback.format_exc(),
     }, ensure_ascii=False))
 '''
+
+
+def _execution_error(status, error, start, lp_path=None):
+    return {
+        "executable": False,
+        "status": status,
+        "objective": None,
+        "lp_path": lp_path,
+        "solver_lp_export_time": None,
+        "solver_time": None,
+        "code_execution_time": float(time.perf_counter() - start),
+        "error": error,
+    }
 
 
 def execute_generated_code(generated_code, run_dir, candidate_id="candidate", timeout=30):
@@ -67,6 +90,7 @@ def execute_generated_code(generated_code, run_dir, candidate_id="candidate", ti
     code_path.write_text(generated_code, encoding="utf-8")
     runner_path.write_text(RUNNER_CODE, encoding="utf-8")
 
+    start = time.perf_counter()
     try:
         env = os.environ.copy()
         project_root = Path(__file__).resolve().parents[2]
@@ -81,34 +105,20 @@ def execute_generated_code(generated_code, run_dir, candidate_id="candidate", ti
             env=env,
         )
     except subprocess.TimeoutExpired:
-        return {
-            "executable": False,
-            "status": "Timeout",
-            "objective": None,
-            "lp_path": None,
-            "error": f"Candidate execution timed out after {timeout} seconds.",
-        }
+        return _execution_error("Timeout", f"Candidate execution timed out after {timeout} seconds.", start)
 
     stdout = proc.stdout.strip()
     if not stdout:
-        return {
-            "executable": False,
-            "status": "Error",
-            "objective": None,
-            "lp_path": None,
-            "error": proc.stderr or "No stdout from candidate execution.",
-        }
+        return _execution_error("Error", proc.stderr or "No stdout from candidate execution.", start)
 
     try:
         result = json.loads(stdout.splitlines()[-1])
     except Exception:
-        result = {
-            "executable": False,
-            "status": "Error",
-            "objective": None,
-            "lp_path": None,
-            "error": f"Cannot parse executor output. stdout={stdout!r}, stderr={proc.stderr!r}",
-        }
+        result = _execution_error("Error", f"Cannot parse executor output. stdout={stdout!r}, stderr={proc.stderr!r}", start)
+
+    result["code_execution_time"] = float(time.perf_counter() - start)
+    result.setdefault("solver_lp_export_time", None)
+    result.setdefault("solver_time", None)
 
     if proc.stderr and result.get("error") is None:
         result["stderr"] = proc.stderr

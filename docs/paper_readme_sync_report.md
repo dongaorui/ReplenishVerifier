@@ -46,7 +46,7 @@ Generated:
 
 `papers/replenishverifier_draft_zh.md` was rewritten around the current project state:
 
-- New title: **ReplenishVerifier：面向库存补货优化的大语言模型 LP 结构验证增强方法**.
+- New title: **ReplenishVerifier：面向大语言模型供应链补货优化自动建模的约束级 LP 结构验证方法**.
 - Structure now follows:
   1. 摘要
   2. 引言
@@ -63,7 +63,7 @@ Generated:
 - Describes parsing of variables, constraints, objective, binary declarations, and bounds.
 - Describes structure checks for inventory balance, shortage/backlog, capacity, fixed ordering cost, binary setup/order trigger, and Big-M.
 - Separates formal selection from final evaluation.
-- Uses `[TO FILL]` for all real LLM experiment results.
+- Uses `[TO FILL AFTER REAL LLM EXPERIMENT]` for all real LLM experiment results.
 - Treats synthetic smoke tests only as sanity checks.
 
 ## 4. English paper generation summary
@@ -71,7 +71,7 @@ Generated:
 `papers/replenishverifier_draft_en.md` was generated with content aligned to the Chinese draft, but not as a mechanical sentence-by-sentence translation. It uses AI/OR paper style and preserves the same safety constraints:
 
 - no fabricated real results;
-- `[TO FILL]` placeholders for unfinished empirical sections;
+- `[TO FILL AFTER REAL LLM EXPERIMENT]` placeholders for unfinished empirical sections;
 - no first/SOTA/no-prior-work overclaim;
 - `*-like` baseline names preserved;
 - no reference-objective selection.
@@ -150,7 +150,7 @@ Forbidden selection signals:
 
 `reference_objective` is only for final evaluation metrics such as objective accuracy and relative error.
 
-## 9. Remaining `[TO FILL]` items
+## 9. Remaining `[TO FILL AFTER REAL LLM EXPERIMENT]` items
 
 The following sections require real experiments before completion:
 

@@ -69,6 +69,15 @@ References read-only:
 4. Synthetic demo candidates are smoke tests only. Real LLM candidates are required for main-table claims.
 5. Objective consensus is useful as a generic test-time baseline/optional signal, but it can converge on a shared wrong objective. It should not replace structure verification.
 
+## Pre-experiment protocol additions
+
+- Prompt leakage risk is controlled by making `hidden_verifier` and `plain` hide `expected_structures`; `structured` is guided/appendix-only because it exposes expected structures.
+- Generic repair is a fair control only when it excludes replenishment-specific missing labels and uses generic execution/solver/audit feedback.
+- Runtime overhead must be reported from real evaluated candidates using the runtime analyzer; missing values are `NA`, not estimated.
+- Naming robustness is currently a lightweight text-level perturbation, not an AST-safe transformation.
+- Preference data is a future learning signal and cannot be described as DPO/PRM/LoRA improvement until training and evaluation are actually run.
+- Formal selection and preference construction do not use `reference_objective`; `reference_objective` remains evaluation-only.
+
 ## Formal selection leakage conclusion
 
 The formal selection code is designed not to use `reference_objective`. `reference_objective` is passed into `compute_score()` only to populate evaluation metrics (`objective_score`, `objective_correct`, `relative_error`) after selection. Selection policies and the leakage audit explicitly mark no-reference selection.

@@ -31,6 +31,7 @@ METHODS = [
     "Structure + Consensus",
     "Solver + Structure + Consensus",
     "OR-R1-like Voting",
+    "Structure-Grounded Consistency",
     "SIRL-like LP-Stats",
     "OptArgus-like Audit",
     "OptiRepair-like Repair-Prompt",
@@ -49,6 +50,9 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
     start = time.perf_counter()
     pid = candidate.get("problem_id")
     cid = candidate.get("candidate_id", "candidate")
+    parsed = None
+    lp_parse_time = None
+    structure_check_time = None
 
     if force_skip_execution:
         execution = {
@@ -56,6 +60,9 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
             "status": "NotRun",
             "objective": None,
             "lp_path": None,
+            "code_execution_time": None,
+            "solver_lp_export_time": None,
+            "solver_time": None,
             "error": "Execution skipped by method.",
         }
         structure_dict = None
@@ -67,13 +74,16 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
             candidate_id=cid,
             timeout=timeout,
         )
-        parsed = None
         structure_dict = None
         feedback = "候选代码没有成功导出 LP，因此无法执行结构验证。"
         if execution.get("lp_path"):
             try:
+                parse_start = time.perf_counter()
                 parsed = parse_lp_file(execution["lp_path"])
+                lp_parse_time = time.perf_counter() - parse_start
+                structure_start = time.perf_counter()
                 structure_result = check_structures(parsed, reference["expected_structures"], problem_type=reference.get("problem_type"))
+                structure_check_time = time.perf_counter() - structure_start
                 structure_dict = structure_result.to_dict()
                 feedback = generate_feedback(structure_result)
             except Exception as exc:
@@ -88,8 +98,6 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
                 }
                 feedback = f"LP 解析或结构验证失败：{exc}"
 
-    if force_skip_execution:
-        parsed = None
     lp_stats = compute_lp_stats(parsed)
     optargus_audit = compute_optargus_audit(parsed, execution)
     sirl_lp_stats_score = sirl_like_lp_stats_score(execution, lp_stats)
@@ -97,12 +105,21 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
     optirepair_repair_score = optirepair_like_score(execution, optargus_audit)
     generic_feedback = generic_repair_feedback(execution, optargus_audit)
 
-    runtime = time.perf_counter() - start
+    total_runtime = time.perf_counter() - start
+    runtime_fields = {
+        "code_execution_time": execution.get("code_execution_time"),
+        "solver_lp_export_time": execution.get("solver_lp_export_time"),
+        "solver_time": execution.get("solver_time"),
+        "lp_parse_time": None if lp_parse_time is None else float(lp_parse_time),
+        "structure_check_time": None if structure_check_time is None else float(structure_check_time),
+        "total_candidate_evaluation_time": float(total_runtime),
+    }
     base = {
         "problem_id": pid,
         "candidate_id": cid,
         "candidate_method": candidate.get("method"),
         "generated_text": candidate.get("generated_text", ""),
+        "prompt_type": candidate.get("prompt_type") or (candidate.get("generation_config") or {}).get("prompt_type"),
         "execution": execution,
         "structure_verification": structure_dict,
         "feedback": feedback,
@@ -112,7 +129,14 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
         "sirl_like_lp_stats_score": sirl_lp_stats_score,
         "optargus_like_audit_score": optargus_audit_score,
         "optirepair_like_repair_score": optirepair_repair_score,
-        "runtime_sec": float(runtime),
+        "runtime": runtime_fields,
+        "code_execution_time": runtime_fields["code_execution_time"],
+        "solver_lp_export_time": runtime_fields["solver_lp_export_time"],
+        "solver_time": runtime_fields["solver_time"],
+        "lp_parse_time": runtime_fields["lp_parse_time"],
+        "structure_check_time": runtime_fields["structure_check_time"],
+        "total_candidate_evaluation_time": runtime_fields["total_candidate_evaluation_time"],
+        "runtime_sec": runtime_fields["total_candidate_evaluation_time"],
         "problem_type": reference.get("problem_type"),
         "difficulty": reference.get("difficulty"),
         "reference_objective": reference.get("reference_objective"),
@@ -225,35 +249,72 @@ REWARD_ABLATION_METHODS = {
 }
 
 
+def lp_artifact_structure_signal(row):
+    structure = row.get("structure_verification") or {}
+    execution = row.get("execution") or {}
+    if not execution.get("lp_path") or not structure:
+        return 0.0
+    required = structure.get("required_structures") or []
+    missing = set(structure.get("missing") or [])
+    if required:
+        covered = [key for key in required if key not in missing]
+        return float(len(covered) / max(len(required), 1))
+    return float(structure.get("structure_score", 0.0) or 0.0)
+
+
 def reward_components(row):
     execution = row.get("execution") or {}
     solver_status = str(execution.get("status") or "")
     rcode = 1.0 if execution.get("executable") else 0.0
     rsolver = 1.0 if solver_status == "Optimal" else 0.0
     rstructure = float(row.get("structure_score", ((row.get("structure_verification") or {}).get("structure_score", 0.0))) or 0.0)
+    rlp_structure = lp_artifact_structure_signal(row)
     rconsensus = float(row.get("objective_consensus_score", 0.0) or 0.0)
     return {
         "Rcode": rcode,
         "Rsolver": rsolver,
         "Rstructure": rstructure,
+        "Rrequired_structure_coverage": rstructure,
+        "Rlp_artifact_structure": rlp_structure,
         "Robjective_consensus": rconsensus,
     }
 
 
+def structure_grounded_consistency_score(row):
+    """Replenishment-specific candidate-only consistency score.
+
+    The score combines code execution, solver status, required replenishment
+    structure coverage from the LP artifact, and objective consensus among
+    candidates. It never reads the reference objective.
+    """
+    components = reward_components(row)
+    return float(
+        0.20 * components["Rcode"]
+        + 0.20 * components["Rsolver"]
+        + 0.30 * components["Rrequired_structure_coverage"]
+        + 0.15 * components["Rlp_artifact_structure"]
+        + 0.15 * components["Robjective_consensus"]
+    )
+
+
 def reward_ablation_score(row, method_name):
+    if method_name == "Structure-Grounded Consistency":
+        return structure_grounded_consistency_score(row)
     components = reward_components(row)
     parts = REWARD_ABLATION_METHODS[method_name]
     score = 0.0
     if "solver" in parts:
         score += components["Rcode"] + components["Rsolver"]
     if "structure" in parts:
-        score += components["Rstructure"]
+        score += 0.67 * components["Rstructure"] + 0.33 * components["Rlp_artifact_structure"]
     if "consensus" in parts:
         score += components["Robjective_consensus"]
     return float(score)
 
 
 def _method_raw_score(row, method_name):
+    if method_name == "Structure-Grounded Consistency":
+        return structure_grounded_consistency_score(row)
     if method_name in REWARD_ABLATION_METHODS:
         return reward_ablation_score(row, method_name)
     if method_name == "OR-R1-like Voting":
@@ -330,10 +391,12 @@ def select_for_method(method_name, evaluated_by_problem, benchmark, allow_feasib
             best["selection_policy"] = "candidate order only, with Hard Selection Gate for formal score; no reference objective"
         elif method_name == "Best-of-K":
             best["selection_policy"] = "first executable/optimal candidate when available, with Hard Selection Gate for formal score; no reference objective"
+        elif method_name == "Structure-Grounded Consistency":
+            best["selection_policy"] = "Hard Selection Gate over replenishment structure-grounded consistency: executable code + optimal solver status + required LP structure coverage + LP artifact key structures + candidate objective consensus; no reference objective"
         elif method_name in REWARD_ABLATION_METHODS:
             parts = ", ".join(REWARD_ABLATION_METHODS[method_name])
-            best["selection_policy"] = f"OR-R1-inspired reward ablation over {parts}; no reference objective"
-        if method_name in REWARD_ABLATION_METHODS:
+            best["selection_policy"] = f"replenishment structure-grounded reward ablation over {parts}; no reference objective"
+        if method_name == "Structure-Grounded Consistency" or method_name in REWARD_ABLATION_METHODS:
             best["reward_components"] = reward_components(best)
         best["uses_reference_objective_for_selection"] = False
         best["selected"] = True
@@ -341,34 +404,92 @@ def select_for_method(method_name, evaluated_by_problem, benchmark, allow_feasib
     return selected
 
 
-def build_repair_prompts(rows):
-    """Build repair prompts for every candidate with missing required structures."""
+def _certificate_summary(certificates):
+    return [
+        {
+            "rule_name": cert.get("rule_name"),
+            "required": cert.get("required"),
+            "passed": cert.get("passed"),
+            "score": cert.get("score"),
+            "evidence_strength": cert.get("evidence_strength"),
+        }
+        for cert in (certificates or [])
+    ]
+
+
+def _evidence_strength_by_rule(certificates):
+    return {cert.get("rule_name"): cert.get("evidence_strength") for cert in (certificates or []) if cert.get("rule_name")}
+
+
+def _base_repair_prompt_row(row, repair_type, missing_structures, feedback, repair_prompt):
+    structure = row.get("structure_verification") or {}
+    certificates = structure.get("certificates", [])
+    return {
+        "problem_id": row["problem_id"],
+        "candidate_id": row["candidate_id"],
+        "method_name": row.get("method_name", "candidate"),
+        "candidate_method": row.get("candidate_method"),
+        "repair_type": repair_type,
+        "repair_feedback_count": len(missing_structures),
+        "missing_structures": list(missing_structures),
+        "low_score_required": structure.get("low_score_required", []) if repair_type == "structure_aware" else [],
+        "structure_certificates": _certificate_summary(certificates) if repair_type == "structure_aware" else [],
+        "evidence_strength_by_rule": _evidence_strength_by_rule(certificates) if repair_type == "structure_aware" else {},
+        "execution": row.get("execution") or {},
+        "generic_repair_feedback": row.get("generic_repair_feedback", ""),
+        "feedback": feedback,
+        "repair_prompt": repair_prompt,
+        "original_candidate_text": row.get("generated_text", ""),
+        "original_candidate_code": row.get("generated_code", ""),
+        "prompt_type": row.get("prompt_type") or (row.get("generation_config") or {}).get("prompt_type"),
+        "uses_reference_objective_for_repair": False,
+    }
+
+
+def build_structure_aware_repair_prompts(rows):
+    """Build structure-aware repair prompts for candidates with missing required structures."""
     prompts = []
     for row in rows:
         structure = row.get("structure_verification") or {}
         missing = structure.get("missing") or []
         if not missing:
             continue
-        prompt = {
-            "problem_id": row["problem_id"],
-            "candidate_id": row["candidate_id"],
-            "method_name": row.get("method_name", "candidate"),
-            "candidate_method": row.get("candidate_method"),
-            "repair_feedback_count": len(missing),
-            "missing_structures": missing,
-            "low_score_required": structure.get("low_score_required", []),
-            "structure_certificates": structure.get("certificates", []),
-            "evidence_strength_by_rule": {cert.get("rule_name"): cert.get("evidence_strength") for cert in structure.get("certificates", [])},
-            "feedback": row.get("feedback", ""),
-            "repair_prompt": (
-                "You are fixing a PuLP optimization model for an inventory replenishment problem.\n"
-                "Revise the generated code according to the structure feedback below.\n"
-                "Keep variable names interpretable: Q for order, I for inventory, B for shortage, Y for binary trigger.\n"
-                "Explicitly name every PuLP constraint; do not rely on anonymous _C1/_C2 names.\n\n"
-                f"Problem ID: {row.get('problem_id')}\n"
-                f"Candidate ID: {row.get('candidate_id')}\n\n"
-                f"Feedback:\n{row.get('feedback', '')}\n"
-            ),
-        }
-        prompts.append(prompt)
+        feedback = row.get("feedback", "")
+        repair_prompt = (
+            "You are fixing a PuLP optimization model for an inventory replenishment problem.\n"
+            "Revise the generated code according to the replenishment structure feedback below.\n"
+            "Keep variable names interpretable and explicitly name every PuLP constraint; do not rely on anonymous _C1/_C2 names.\n\n"
+            f"Problem ID: {row.get('problem_id')}\n"
+            f"Candidate ID: {row.get('candidate_id')}\n\n"
+            f"Missing structures: {', '.join(missing)}\n\n"
+            f"Feedback:\n{feedback}\n"
+        )
+        prompts.append(_base_repair_prompt_row(row, "structure_aware", missing, feedback, repair_prompt))
     return prompts
+
+
+def build_generic_repair_prompts(rows):
+    """Build generic repair prompts without replenishment-specific missing-structure labels."""
+    prompts = []
+    for row in rows:
+        feedback = row.get("generic_repair_feedback", "")
+        audit = row.get("optargus_audit") or {}
+        execution = row.get("execution") or {}
+        if not feedback and execution.get("executable") and not audit.get("generic_issue_count"):
+            continue
+        if not feedback:
+            feedback = "- Inspect generic execution, objective, variables, constraints, bounds, and solver status."
+        repair_prompt = (
+            "You are fixing a PuLP optimization model using only generic execution, solver, and LP-artifact feedback.\n"
+            "Do not use task-specific verifier rule names.\n\n"
+            f"Problem ID: {row.get('problem_id')}\n"
+            f"Candidate ID: {row.get('candidate_id')}\n\n"
+            f"Generic feedback:\n{feedback}\n"
+        )
+        prompts.append(_base_repair_prompt_row(row, "generic", [], feedback, repair_prompt))
+    return prompts
+
+
+def build_repair_prompts(rows):
+    """Backward-compatible alias for structure-aware repair prompts."""
+    return build_structure_aware_repair_prompts(rows)

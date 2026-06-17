@@ -1,10 +1,14 @@
 # Paper experiment revision plan
 
-## Main thesis to defend
+## Target title and thesis
 
-ReplenishVerifier's increment is not generic solver execution, objective matching, majority voting, LP artifact existence, hallucination auditing, or repair prompting. The increment is **replenishment-specific LP structure supervision** extracted from the model induced by generated solver code.
+**English title:** ReplenishVerifier: Constraint-Level LP-Structure Verification for LLM-Based Supply Chain Replenishment Optimization Modeling
 
-Therefore, the paper should show that the gain remains after comparing against strong generic baselines.
+**Chinese title:** ReplenishVerifier：面向大语言模型供应链补货优化自动建模的约束级 LP 结构验证方法
+
+ReplenishVerifier's increment is not generic solver execution, objective matching, majority voting, LP artifact existence, hallucination auditing, or repair prompting. The increment is **constraint-level, replenishment-specific LP structure verification** extracted from the model induced by generated solver code.
+
+Therefore, the paper should show that the gain remains after comparing against strong generic signal-isolation baselines. All unfinished empirical results must remain `[TO FILL AFTER REAL LLM EXPERIMENT]`.
 
 ## Main experiment table
 
@@ -28,13 +32,16 @@ Recommended main-table methods:
 6. `OptArgus-like Audit`
    - Generic objective/variable/constraint/implementation audit.
    - No inventory balance/Big-M/shortage-specific checks.
-7. `ReplenishVerifier-Full`
+7. `Structure-Grounded Consistency`
+   - Solver execution + required replenishment structure coverage + LP artifact key-structure evidence + candidate objective consensus.
+   - No `reference_objective`.
+8. `ReplenishVerifier-Full`
    - Solver execution + replenishment LP structure completeness + semantic consistency.
    - No `reference_objective`.
 
 Optional in the main table only if real second-round repair is run:
 
-8. `ReplenishVerifier-Repair`
+9. `ReplenishVerifier-Repair`
    - Include only when repaired candidates are generated and evaluated by an LLM repair run.
    - Otherwise keep it as a prompt-generation analysis/appendix item.
 
@@ -56,8 +63,9 @@ Recommended ablations:
 4. `OptArgus-like Audit`: replace replenishment structure with generic audit.
 5. `OR-R1-like Voting`: replace replenishment structure with test-time consensus/voting.
 6. `Structure-Only`: remove solver-status component.
-7. Optional `Full + objective consensus`: test whether generic consensus is complementary or redundant.
-8. Optional name-robustness stress test: renamed variables vs instructed `Q/I/B/Y` variables.
+7. `Structure-Grounded Consistency`: combine required structure coverage and LP artifact evidence with candidate objective consensus.
+8. Optional `Full + objective consensus`: test whether generic consensus is complementary or redundant.
+9. Optional name-robustness stress test: renamed variables vs instructed `Q/I/B/Y` variables.
 
 ## Case study design
 

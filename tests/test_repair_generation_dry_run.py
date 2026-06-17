@@ -6,9 +6,11 @@ from replenishverifier.utils.io import write_jsonl, read_jsonl
 def test_prompt_builder_requires_explicit_constraint_names():
     sample = {"id": "p0", "parameters": {}, "expected_structures": {}, "natural_language": "test"}
     prompt = build_prompt(sample)
-    assert "CRITICAL REGULATION" in prompt
-    assert "MUST explicitly provide string names for ALL constraints" in prompt
+    assert "explicitly name every PuLP constraint" in prompt
     assert "_C1/_C2" in prompt
+    structured = build_prompt(sample, prompt_type="structured")
+    assert "CRITICAL REGULATION" in structured
+    assert "MUST explicitly provide string names for ALL constraints" in structured
     repair = build_repair_prompt(sample, {"feedback": "fix"})
     assert "Do NOT write anonymous constraints" in repair
 
