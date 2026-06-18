@@ -1,0 +1,127 @@
+method,error_type,reported,recomputed,delta,status
+Best-of-K,execution_error,,3,,MISSING
+Best-of-K,missing_capacity_constraint,,6,,MISSING
+Best-of-K,missing_inventory_balance,,1,,MISSING
+Best-of-K,missing_shortage_variable,,1,,MISSING
+Best-of-K,no_error_detected,,26,,MISSING
+Best-of-K,objective_mismatch_after_selection,,10,,MISSING
+Best-of-K,solver_not_optimal,,3,,MISSING
+Consensus only,execution_error,,3,,MISSING
+Consensus only,missing_capacity_constraint,,6,,MISSING
+Consensus only,missing_inventory_balance,,1,,MISSING
+Consensus only,missing_shortage_variable,,1,,MISSING
+Consensus only,no_error_detected,,27,,MISSING
+Consensus only,objective_mismatch_after_selection,,9,,MISSING
+Consensus only,solver_not_optimal,,3,,MISSING
+Direct,execution_error,,3,,MISSING
+Direct,missing_capacity_constraint,,6,,MISSING
+Direct,missing_inventory_balance,,1,,MISSING
+Direct,missing_shortage_variable,,1,,MISSING
+Direct,no_error_detected,,26,,MISSING
+Direct,objective_mismatch_after_selection,,10,,MISSING
+Direct,solver_not_optimal,,3,,MISSING
+OR-R1-like Voting,execution_error,,3,,MISSING
+OR-R1-like Voting,missing_capacity_constraint,,6,,MISSING
+OR-R1-like Voting,missing_inventory_balance,,1,,MISSING
+OR-R1-like Voting,missing_shortage_variable,,1,,MISSING
+OR-R1-like Voting,no_error_detected,,27,,MISSING
+OR-R1-like Voting,objective_mismatch_after_selection,,9,,MISSING
+OR-R1-like Voting,solver_not_optimal,,3,,MISSING
+OptArgus-like Audit,execution_error,,3,,MISSING
+OptArgus-like Audit,missing_capacity_constraint,,6,,MISSING
+OptArgus-like Audit,missing_inventory_balance,,1,,MISSING
+OptArgus-like Audit,missing_shortage_variable,,1,,MISSING
+OptArgus-like Audit,no_error_detected,,26,,MISSING
+OptArgus-like Audit,objective_mismatch_after_selection,,10,,MISSING
+OptArgus-like Audit,solver_not_optimal,,3,,MISSING
+OptiRepair-like Repair-Prompt,execution_error,,3,,MISSING
+OptiRepair-like Repair-Prompt,missing_capacity_constraint,,6,,MISSING
+OptiRepair-like Repair-Prompt,missing_inventory_balance,,1,,MISSING
+OptiRepair-like Repair-Prompt,missing_shortage_variable,,1,,MISSING
+OptiRepair-like Repair-Prompt,no_error_detected,,26,,MISSING
+OptiRepair-like Repair-Prompt,objective_mismatch_after_selection,,10,,MISSING
+OptiRepair-like Repair-Prompt,solver_not_optimal,,3,,MISSING
+ReplenishVerifier-Full,execution_error,,3,,MISSING
+ReplenishVerifier-Full,missing_capacity_constraint,,6,,MISSING
+ReplenishVerifier-Full,missing_inventory_balance,,1,,MISSING
+ReplenishVerifier-Full,missing_shortage_variable,,1,,MISSING
+ReplenishVerifier-Full,no_error_detected,,26,,MISSING
+ReplenishVerifier-Full,objective_mismatch_after_selection,,10,,MISSING
+ReplenishVerifier-Full,solver_not_optimal,,3,,MISSING
+ReplenishVerifier-Repair,execution_error,,3,,MISSING
+ReplenishVerifier-Repair,missing_capacity_constraint,,6,,MISSING
+ReplenishVerifier-Repair,missing_inventory_balance,,1,,MISSING
+ReplenishVerifier-Repair,missing_shortage_variable,,1,,MISSING
+ReplenishVerifier-Repair,no_error_detected,,26,,MISSING
+ReplenishVerifier-Repair,objective_mismatch_after_selection,,10,,MISSING
+ReplenishVerifier-Repair,solver_not_optimal,,3,,MISSING
+SIRL-like LP-Stats,execution_error,,3,,MISSING
+SIRL-like LP-Stats,missing_capacity_constraint,,6,,MISSING
+SIRL-like LP-Stats,missing_inventory_balance,,1,,MISSING
+SIRL-like LP-Stats,missing_shortage_variable,,1,,MISSING
+SIRL-like LP-Stats,no_error_detected,,25,,MISSING
+SIRL-like LP-Stats,objective_mismatch_after_selection,,11,,MISSING
+SIRL-like LP-Stats,solver_not_optimal,,3,,MISSING
+Solver + Consensus,execution_error,,3,,MISSING
+Solver + Consensus,missing_capacity_constraint,,6,,MISSING
+Solver + Consensus,missing_inventory_balance,,1,,MISSING
+Solver + Consensus,missing_shortage_variable,,1,,MISSING
+Solver + Consensus,no_error_detected,,27,,MISSING
+Solver + Consensus,objective_mismatch_after_selection,,9,,MISSING
+Solver + Consensus,solver_not_optimal,,3,,MISSING
+Solver + Structure,execution_error,,3,,MISSING
+Solver + Structure,missing_capacity_constraint,,6,,MISSING
+Solver + Structure,missing_inventory_balance,,1,,MISSING
+Solver + Structure,missing_shortage_variable,,1,,MISSING
+Solver + Structure,no_error_detected,,26,,MISSING
+Solver + Structure,objective_mismatch_after_selection,,10,,MISSING
+Solver + Structure,solver_not_optimal,,3,,MISSING
+Solver + Structure + Consensus,execution_error,,3,,MISSING
+Solver + Structure + Consensus,missing_capacity_constraint,,6,,MISSING
+Solver + Structure + Consensus,missing_inventory_balance,,1,,MISSING
+Solver + Structure + Consensus,missing_shortage_variable,,1,,MISSING
+Solver + Structure + Consensus,no_error_detected,,27,,MISSING
+Solver + Structure + Consensus,objective_mismatch_after_selection,,9,,MISSING
+Solver + Structure + Consensus,solver_not_optimal,,3,,MISSING
+Solver only,execution_error,,3,,MISSING
+Solver only,missing_capacity_constraint,,6,,MISSING
+Solver only,missing_inventory_balance,,1,,MISSING
+Solver only,missing_shortage_variable,,1,,MISSING
+Solver only,no_error_detected,,26,,MISSING
+Solver only,objective_mismatch_after_selection,,10,,MISSING
+Solver only,solver_not_optimal,,3,,MISSING
+Solver-Filter,execution_error,,3,,MISSING
+Solver-Filter,missing_capacity_constraint,,6,,MISSING
+Solver-Filter,missing_inventory_balance,,1,,MISSING
+Solver-Filter,missing_shortage_variable,,1,,MISSING
+Solver-Filter,no_error_detected,,26,,MISSING
+Solver-Filter,objective_mismatch_after_selection,,10,,MISSING
+Solver-Filter,solver_not_optimal,,3,,MISSING
+Structure + Consensus,execution_error,,3,,MISSING
+Structure + Consensus,missing_capacity_constraint,,6,,MISSING
+Structure + Consensus,missing_inventory_balance,,1,,MISSING
+Structure + Consensus,missing_shortage_variable,,1,,MISSING
+Structure + Consensus,no_error_detected,,27,,MISSING
+Structure + Consensus,objective_mismatch_after_selection,,9,,MISSING
+Structure + Consensus,solver_not_optimal,,3,,MISSING
+Structure only,execution_error,,3,,MISSING
+Structure only,missing_capacity_constraint,,6,,MISSING
+Structure only,missing_inventory_balance,,1,,MISSING
+Structure only,missing_shortage_variable,,1,,MISSING
+Structure only,no_error_detected,,26,,MISSING
+Structure only,objective_mismatch_after_selection,,10,,MISSING
+Structure only,solver_not_optimal,,3,,MISSING
+Structure-Grounded Consistency,execution_error,,3,,MISSING
+Structure-Grounded Consistency,missing_capacity_constraint,,6,,MISSING
+Structure-Grounded Consistency,missing_inventory_balance,,1,,MISSING
+Structure-Grounded Consistency,missing_shortage_variable,,1,,MISSING
+Structure-Grounded Consistency,no_error_detected,,27,,MISSING
+Structure-Grounded Consistency,objective_mismatch_after_selection,,9,,MISSING
+Structure-Grounded Consistency,solver_not_optimal,,3,,MISSING
+Structure-Only,execution_error,,3,,MISSING
+Structure-Only,missing_capacity_constraint,,6,,MISSING
+Structure-Only,missing_inventory_balance,,1,,MISSING
+Structure-Only,missing_shortage_variable,,1,,MISSING
+Structure-Only,no_error_detected,,26,,MISSING
+Structure-Only,objective_mismatch_after_selection,,10,,MISSING
+Structure-Only,solver_not_optimal,,3,,MISSING
