@@ -3,7 +3,7 @@ import json
 
 SYSTEM_PROMPT = """You are an expert operations research modeler. Generate correct, executable PuLP code for inventory replenishment optimization problems."""
 
-PROMPT_TYPES = {"structured", "plain", "hidden_verifier"}
+PROMPT_TYPES = {"structured", "plain", "hidden_verifier", "type_aware_hidden_verifier"}
 
 
 CONSTRAINT_NAMING_REGULATION = """CRITICAL REGULATION:
@@ -95,6 +95,52 @@ def _parameters_block(sample):
 """
 
 
+def type_aware_generation_checklist(problem_type):
+    """Natural-language modeling checklist for hidden type-aware generation.
+
+    This intentionally does not expose expected_structures JSON, reference
+    objectives, reference LPs, or reference answers.
+    """
+    checklists = {
+        "single_period_newsvendor": [
+            "Define an order quantity decision variable and represent demand-dependent leftover or unmet-demand effects when needed.",
+            "Include objective terms for ordering or purchasing cost and overage/holding and underage/shortage penalties when they are present in the data.",
+            "Use explicit variable and constraint names that reflect order, inventory, overage, underage, or shortage roles.",
+        ],
+        "single_item_multi_period": [
+            "Define period-indexed order and inventory decision variables.",
+            "Add inventory balance constraints linking inventory across periods with orders and demand.",
+            "Include ordering and holding cost terms in the objective.",
+        ],
+        "single_item_multi_period_shortage": [
+            "Define period-indexed order, inventory, and shortage or unmet-demand decision variables.",
+            "Add balance constraints that connect inventory, order quantity, demand, and shortage across periods.",
+            "Include shortage penalty terms in the objective along with ordering and holding costs.",
+        ],
+        "multi_item_capacity": [
+            "Define item-period order and inventory decision variables.",
+            "Add item-wise inventory balance constraints for every item and period.",
+            "Add per-period capacity or resource constraints that limit total replenishment or inventory usage across items.",
+            "Include item-wise ordering and holding cost terms in the objective.",
+        ],
+        "fixed_order_cost_big_m": [
+            "Define period-indexed order and inventory decision variables.",
+            "Define binary order/setup variables that indicate whether an order is placed in each period.",
+            "Add Big-M linking constraints so positive order quantities require the binary order/setup variable to be active.",
+            "Include fixed order or setup cost terms in the objective along with variable ordering and holding costs.",
+            "Add inventory balance constraints linking inventory across periods with orders and demand.",
+        ],
+    }
+    items = checklists.get(problem_type) or [
+        "Define clear PuLP decision variables for the optimization decisions.",
+        "Include a complete objective and all constraints implied by the natural-language problem.",
+        "Use explicit names for constraints and variables so the exported LP is interpretable.",
+    ]
+    body = "\n".join(f"- {item}" for item in items)
+    return f"Problem-type modeling checklist:\n{body}\n"
+
+
+
 def build_prompt(sample, prompt_type="hidden_verifier"):
     _validate_prompt_type(prompt_type)
     params = _parameters_block(sample)
@@ -116,6 +162,15 @@ Expected high-level modeling structures as JSON:
 
 {_plain_problem_header(sample)}
 {params}
+{PULP_INTERFACE_REQUIREMENTS}'''
+
+    if prompt_type == "type_aware_hidden_verifier":
+        return f'''Given the following optimization problem, write one complete Python program using PuLP.
+
+{_plain_problem_header(sample)}
+{params}
+{type_aware_generation_checklist(sample.get('problem_type'))}
+{GENERIC_CONSTRAINT_NAMING_GUIDANCE}
 {PULP_INTERFACE_REQUIREMENTS}'''
 
     return f'''Given the following optimization problem, write one complete Python program using PuLP.

@@ -12,6 +12,14 @@ PATTERNS = {
 }
 
 
+OBJECTIVE_CONTEXT_PATTERNS = {
+    "order_cost": re.compile(r"order_cost|ordering_cost|unit_order_cost|purchase_cost|procurement|order\s*\[|Q\s*\[", re.IGNORECASE),
+    "holding_cost": re.compile(r"holding_cost|hold_cost|inventory_cost|holding|inventory\s*\[|I\s*\[", re.IGNORECASE),
+    "shortage_cost": re.compile(r"shortage_cost|shortage_penalty|backlog_cost|unmet_penalty|unmet_cost|penalty_shortage", re.IGNORECASE),
+    "fixed_order_cost": re.compile(r"fixed_order_cost|setup_cost|fixed_cost|ordering_fixed|setup\s*\[|order_binary\s*\[", re.IGNORECASE),
+}
+
+
 class _PulpModelVisitor(ast.NodeVisitor):
     def __init__(self):
         self.has_build_model = False
@@ -68,12 +76,92 @@ def _score(result):
     return sum(1.0 for key in checks if result[key]) / len(checks)
 
 
+def _objective_has(term_key, code):
+    return bool(OBJECTIVE_CONTEXT_PATTERNS[term_key].search(code or ""))
+
+
+def _attach_type_aware_validation(result, problem_type, code):
+    type_aware = _type_aware_checks(problem_type, code, result)
+    result["type_aware_static_validation"] = type_aware
+    result["type_aware_static_validation_score"] = float(type_aware["score"])
+    result["type_aware_static_validation_errors"] = list(type_aware["missing_items"])
+    return result
+
+
+def _type_aware_checks(problem_type, code, result):
+    checks = []
+
+    def add(item_id, passed, feedback):
+        checks.append({"id": item_id, "passed": bool(passed), "feedback": feedback})
+
+    has_inventory = result.get("has_inventory_balance_pattern")
+    has_capacity = result.get("has_capacity_pattern")
+    has_shortage = result.get("has_shortage_pattern")
+    has_binary = result.get("has_binary_order_pattern")
+    has_big_m = result.get("has_big_m_pattern")
+    has_fixed_cost = result.get("has_fixed_order_cost_pattern") or _objective_has("fixed_order_cost", code)
+    has_shortage_cost = _objective_has("shortage_cost", code)
+    has_order_cost = _objective_has("order_cost", code)
+    has_holding_cost = _objective_has("holding_cost", code)
+
+    if problem_type in {"single_item_multi_period", "single_item_multi_period_shortage", "multi_item_capacity", "fixed_order_cost_big_m"}:
+        add("inventory_balance", has_inventory, "Add explicit inventory balance constraints linking inventory, orders, and demand across periods.")
+    if problem_type == "multi_item_capacity":
+        add("capacity_constraint", has_capacity, "Add per-period capacity/resource constraints across items.")
+    if problem_type == "single_item_multi_period_shortage":
+        add("shortage_variable", has_shortage, "Add shortage/backlog/unmet-demand variables.")
+        add("shortage_cost_term", has_shortage_cost, "Include shortage penalty terms in the objective.")
+    if problem_type == "fixed_order_cost_big_m":
+        add("fixed_order_binary", has_binary, "Add binary order/setup variables.")
+        add("big_m_linking", has_big_m, "Add Big-M linking constraints tying order quantities to binary setup/order variables.")
+        add("fixed_order_cost_term", has_fixed_cost, "Include fixed order/setup cost terms in the objective.")
+    if problem_type in {"single_item_multi_period", "single_item_multi_period_shortage", "multi_item_capacity", "fixed_order_cost_big_m"}:
+        add("order_cost_term", has_order_cost, "Include ordering or purchase cost terms in the objective.")
+        add("holding_cost_term", has_holding_cost, "Include holding or inventory cost terms in the objective.")
+
+    missing = [f"missing_{item['id']}" for item in checks if not item["passed"]]
+    passed = [item["id"] for item in checks if item["passed"]]
+    feedback = [item["feedback"] for item in checks if not item["passed"]]
+    score = float(len(passed) / max(len(checks), 1))
+    hard_gate_failures = [item for item in missing if item in {
+        "missing_inventory_balance",
+        "missing_capacity_constraint",
+        "missing_shortage_variable",
+        "missing_shortage_cost_term",
+        "missing_fixed_order_binary",
+        "missing_big_m_linking",
+        "missing_fixed_order_cost_term",
+    }]
+    hard_gate_score = float((len(checks) - len(hard_gate_failures)) / max(len(checks), 1)) if checks else 1.0
+    return {
+        "problem_type": problem_type,
+        "checklist": checks,
+        "passed_items": passed,
+        "missing_items": missing,
+        "repair_feedback": feedback,
+        "score": score,
+        "hard_gate_failures": hard_gate_failures,
+        "hard_gate_score": hard_gate_score,
+        "evidence": {
+            "inventory_balance": bool(has_inventory),
+            "capacity_constraint": bool(has_capacity),
+            "shortage_variable": bool(has_shortage),
+            "shortage_cost_term": bool(has_shortage_cost),
+            "fixed_order_binary": bool(has_binary),
+            "big_m_linking": bool(has_big_m),
+            "fixed_order_cost_term": bool(has_fixed_cost),
+            "order_cost_term": bool(has_order_cost),
+            "holding_cost_term": bool(has_holding_cost),
+        },
+    }
+
+
 def compute_static_validation(generated_code: str, problem_type: str | None = None) -> dict:
     code = generated_code or ""
     result = _base_result()
     if not code.strip():
         result["static_validation_errors"].append("empty_code")
-        return result
+        return _attach_type_aware_validation(result, problem_type, code)
     if "```" in code:
         result["static_validation_errors"].append("contains_markdown_fence")
 
@@ -81,7 +169,7 @@ def compute_static_validation(generated_code: str, problem_type: str | None = No
         tree = ast.parse(code)
     except SyntaxError:
         result["static_validation_errors"].append("syntax_error")
-        return result
+        return _attach_type_aware_validation(result, problem_type, code)
 
     visitor = _PulpModelVisitor()
     visitor.visit(tree)
@@ -106,4 +194,4 @@ def compute_static_validation(generated_code: str, problem_type: str | None = No
         result["static_validation_errors"].append("missing_constraints_surface")
 
     result["static_validation_score"] = float(_score(result))
-    return result
+    return _attach_type_aware_validation(result, problem_type, code)

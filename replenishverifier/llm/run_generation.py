@@ -149,7 +149,7 @@ def run_generation(
     top_p=0.95,
     trust_remote_code=True,
     use_chat_template=True,
-    prompt_type="hidden_verifier",
+    prompt_type="type_aware_hidden_verifier",
     seed=None,
     max_generation_attempts_per_candidate=1,
     require_static_valid_code=False,
@@ -281,7 +281,7 @@ def main():
     parser.add_argument("--trust_remote_code", action="store_true", default=True)
     parser.add_argument("--no_trust_remote_code", action="store_false", dest="trust_remote_code")
     parser.add_argument("--no_chat_template", action="store_false", dest="use_chat_template")
-    parser.add_argument("--prompt_type", choices=["hidden_verifier", "plain", "structured"], default="hidden_verifier")
+    parser.add_argument("--prompt_type", choices=["hidden_verifier", "plain", "structured", "type_aware_hidden_verifier"], default="type_aware_hidden_verifier")
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--max_generation_attempts_per_candidate", type=int, default=1)
     parser.add_argument("--require_static_valid_code", action="store_true", default=False)

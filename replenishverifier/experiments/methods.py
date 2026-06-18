@@ -38,6 +38,7 @@ METHODS = [
     "OptArgus-like Audit",
     "OptiRepair-like Repair-Prompt",
     "Structure-Only",
+    "ReplenishVerifier-TypeAware",
     "ReplenishVerifier-Full",
     "ReplenishVerifier-Repair",
 ]
@@ -272,6 +273,7 @@ STRUCTURE_AWARE_METHODS = {
     "Structure + Consensus",
     "Solver + Structure + Consensus",
     "Structure-Grounded Consistency",
+    "ReplenishVerifier-TypeAware",
     "ReplenishVerifier-Full",
     "ReplenishVerifier-Repair",
     "ReplenishVerifier full",
@@ -347,6 +349,81 @@ def _repair_feedback_count(row):
     if not feedback:
         return 0
     return len([line for line in str(feedback).splitlines() if line.strip()])
+
+
+def _type_aware_validation(row):
+    return row.get("type_aware_static_validation") or ((row.get("static_validation") or {}).get("type_aware_static_validation")) or {}
+
+
+def _type_aware_errors(row):
+    direct = row.get("type_aware_static_validation_errors")
+    if direct is not None:
+        return list(direct or [])
+    nested = row.get("static_validation") or {}
+    return list(nested.get("type_aware_static_validation_errors") or [])
+
+
+def _objective_term_coverage(row):
+    value = row.get("objective_term_coverage")
+    if value is None:
+        value = (row.get("objective_term_verification") or {}).get("objective_term_coverage")
+    return float(value or 0.0)
+
+
+def _type_aware_hard_gate_score(row):
+    validation = _type_aware_validation(row)
+    return float(validation.get("hard_gate_score", 1.0) if validation else 1.0)
+
+
+def _type_aware_hard_gate_failures(row):
+    validation = _type_aware_validation(row)
+    return list(validation.get("hard_gate_failures") or [])
+
+
+def _type_aware_repair_feedback_count(row):
+    missing = set(_type_aware_errors(row))
+    missing.update(_critical_missing_structures(row))
+    return len(missing)
+
+
+def type_aware_selection_components(row):
+    execution = row.get("execution") or {}
+    status = str(execution.get("status") or "")
+    executable = 1.0 if execution.get("executable") else 0.0
+    solver_optimal = 1.0 if status == "Optimal" else 0.0
+    structure_completeness = float(row.get("structure_score", ((row.get("structure_verification") or {}).get("structure_score", 0.0))) or 0.0)
+    constraint_coverage = _constraint_coverage(row)
+    objective_term_coverage = _objective_term_coverage(row)
+    hard_gate_score = _type_aware_hard_gate_score(row)
+    consensus_score = float(row.get("objective_consensus_score", 0.0) or 0.0)
+    repair_feedback_count = float(_type_aware_repair_feedback_count(row))
+    runtime_sec = float(row.get("runtime_sec", row.get("total_candidate_evaluation_time", 0.0)) or 0.0)
+    return {
+        "executable": executable,
+        "solver_optimal": solver_optimal,
+        "structure_completeness": structure_completeness,
+        "constraint_coverage": constraint_coverage,
+        "objective_term_coverage": objective_term_coverage,
+        "hard_gate_score": hard_gate_score,
+        "consensus_score": consensus_score,
+        "repair_feedback_count": repair_feedback_count,
+        "runtime_sec": runtime_sec,
+    }
+
+
+def type_aware_selection_score(row):
+    c = type_aware_selection_components(row)
+    return float(
+        1000.0 * c["executable"]
+        + 500.0 * c["solver_optimal"]
+        + 100.0 * c["structure_completeness"]
+        + 80.0 * c["constraint_coverage"]
+        + 80.0 * c["objective_term_coverage"]
+        + 50.0 * c["hard_gate_score"]
+        + 30.0 * c["consensus_score"]
+        - 5.0 * c["repair_feedback_count"]
+        - 0.1 * c["runtime_sec"]
+    )
 
 
 def _candidate_index(row):
@@ -436,6 +513,8 @@ def _method_raw_score(row, method_name):
         return row.get("raw_solver_only_score", row.get("solver_only_score", 0.0))
     if method_name == "Structure-Only":
         return row.get("structure_score", row.get("structure_only_score", 0.0))
+    if method_name == "ReplenishVerifier-TypeAware":
+        return type_aware_selection_score(row)
     if method_name in {"ReplenishVerifier-Full", "ReplenishVerifier-Repair"}:
         return row.get("raw_inference_score", row.get("score", 0.0))
     if method_name in {"Direct", "Best-of-K"}:
@@ -456,6 +535,9 @@ def _selection_tie_break_key(row, method_name, allow_feasible_selection=False):
         float(row.get("structure_score", ((row.get("structure_verification") or {}).get("structure_score", 0.0))) or 0.0),
         _rule_score(row, "inventory_balance"),
         _constraint_coverage(row),
+        _objective_term_coverage(row),
+        _type_aware_hard_gate_score(row),
+        -_type_aware_repair_feedback_count(row),
         -_repair_feedback_count(row),
         float(row.get("static_validation_score", ((row.get("static_validation") or {}).get("static_validation_score", 0.0))) or 0.0),
         -_candidate_index(row),
@@ -477,6 +559,13 @@ def _annotate_selected_score(best, method_name, allow_feasible_selection=False):
         "rule": "Only executable + Optimal candidates can be selected." if not allow_feasible_selection else "Executable + Optimal candidates can be selected; Feasible is allowed by explicit flag.",
         "passed": gated_score > 0.0,
     }
+    if method_name == "ReplenishVerifier-TypeAware":
+        best["selection_components"] = type_aware_selection_components(best)
+        best["hard_gate_failures"] = _type_aware_hard_gate_failures(best)
+        best["hard_gate_score"] = best["selection_components"]["hard_gate_score"]
+        best["constraint_coverage"] = best["selection_components"]["constraint_coverage"]
+        best["objective_term_coverage"] = best["selection_components"]["objective_term_coverage"]
+        best["repair_feedback_count"] = best["selection_components"]["repair_feedback_count"]
     if penalty["enabled"]:
         best["critical_structure_penalty"] = penalty
     return best
@@ -519,6 +608,8 @@ def select_for_method(method_name, evaluated_by_problem, benchmark, allow_feasib
             best["selection_policy"] = "best executable/optimal candidate by no-reference tie-breaker, with Hard Selection Gate for formal score; no reference objective"
         elif method_name == "Structure-Grounded Consistency":
             best["selection_policy"] = "Hard Selection Gate over replenishment structure-grounded consistency: executable code + optimal solver status + required LP structure coverage + LP artifact key structures + candidate objective consensus; no reference objective"
+        elif method_name == "ReplenishVerifier-TypeAware":
+            best["selection_policy"] = "Hard Selection Gate over executable + optimal candidates, ranked by TypeAware no-reference score using structure completeness, constraint coverage, objective-term coverage, type-aware hard gates, candidate objective consensus, repair feedback count, and runtime; no reference objective"
         elif method_name in REWARD_ABLATION_METHODS:
             parts = ", ".join(REWARD_ABLATION_METHODS[method_name])
             best["selection_policy"] = f"replenishment structure-grounded reward ablation over {parts}; no reference objective"
@@ -573,6 +664,10 @@ def _base_repair_prompt_row(row, repair_type, missing_structures, feedback, repa
         "original_candidate_text": row.get("generated_text", ""),
         "original_candidate_code": row.get("generated_code", ""),
         "prompt_type": row.get("prompt_type") or (row.get("generation_config") or {}).get("prompt_type"),
+        "type_aware_static_validation": _type_aware_validation(row),
+        "type_aware_static_validation_errors": _type_aware_errors(row),
+        "repair_generation_executed": False,
+        "is_evaluated_repair_result": False,
         "uses_reference_objective_for_repair": False,
     }
 
@@ -598,6 +693,15 @@ def build_structure_aware_repair_prompts(rows):
         static_errors = _static_validation_errors(row)
         if static_errors:
             repair_prompt += "\nStatic validation errors:\n" + "\n".join(f"- {error}" for error in static_errors) + "\n"
+        type_aware = _type_aware_validation(row)
+        type_aware_missing = list(type_aware.get("missing_items") or _type_aware_errors(row))
+        type_aware_feedback = list(type_aware.get("repair_feedback") or [])
+        if type_aware_missing:
+            repair_prompt += "\nType-aware static validation missing items:\n" + "\n".join(f"- {item}" for item in type_aware_missing) + "\n"
+        if type_aware_feedback:
+            repair_prompt += "\nType-aware repair requirements:\n" + "\n".join(f"- {item}" for item in type_aware_feedback) + "\n"
+        if type_aware_missing or type_aware_feedback:
+            repair_prompt += "\nReturn only raw Python source code with no Markdown fences or explanations.\n"
         prompts.append(_base_repair_prompt_row(row, "structure_aware", missing, feedback, repair_prompt))
     return prompts
 

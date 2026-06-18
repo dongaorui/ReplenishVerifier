@@ -1,4 +1,4 @@
-from replenishverifier.llm.prompt_builder import build_chat_messages, build_prompt
+from replenishverifier.llm.prompt_builder import build_chat_messages, build_prompt, type_aware_generation_checklist
 from replenishverifier.llm.run_generation import render_prompt
 
 
@@ -70,6 +70,38 @@ def test_unknown_prompt_type_raises_value_error():
         assert "prompt_type" in str(exc)
     else:
         raise AssertionError("build_prompt should reject unknown prompt_type")
+
+
+def test_type_aware_hidden_verifier_prompt_includes_fixed_order_checklist_without_expected_json():
+    prompt = build_prompt(_sample(), prompt_type="type_aware_hidden_verifier")
+
+    assert "Problem-type modeling checklist" in prompt
+    assert "binary order" in prompt.lower() or "binary setup" in prompt.lower()
+    assert "big-m" in prompt.lower() or "big m" in prompt.lower()
+    assert "fixed order cost" in prompt.lower() or "setup cost" in prompt.lower()
+    assert "Expected high-level modeling structures as JSON" not in prompt
+    assert '"inventory_balance"' not in prompt
+    assert '"big_m_constraint"' not in prompt
+    assert '"fixed_order_cost"' not in prompt
+    assert "build_model()" in prompt
+    assert "The first line of your answer must be exactly: import pulp" in prompt
+
+
+def test_type_aware_checklist_mentions_capacity_for_multi_item_capacity():
+    checklist = type_aware_generation_checklist("multi_item_capacity")
+
+    assert "capacity" in checklist.lower()
+    assert "item" in checklist.lower()
+    assert "period" in checklist.lower()
+    assert "inventory balance" in checklist.lower()
+
+
+def test_render_prompt_accepts_type_aware_hidden_verifier_with_chat_template():
+    rendered = render_prompt(DummyTokenizer(), _sample(), use_chat_template=True, prompt_type="type_aware_hidden_verifier")
+
+    assert "Problem-type modeling checklist" in rendered
+    assert "Expected high-level modeling structures as JSON" not in rendered
+    assert "build_model()" in rendered
 
 
 class ThinkingAwareTokenizer:

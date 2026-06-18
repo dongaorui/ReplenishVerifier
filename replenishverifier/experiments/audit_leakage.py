@@ -24,6 +24,7 @@ FORMAL_METHODS = {
     "OptArgus-like Audit",
     "OptiRepair-like Repair-Prompt",
     "Structure-Only",
+    "ReplenishVerifier-TypeAware",
     "ReplenishVerifier-Full",
     "ReplenishVerifier-Repair",
 }
@@ -38,6 +39,19 @@ FORBIDDEN_POLICY_PHRASES = [
     "ground truth objective",
     "oracle",
 ]
+
+FORBIDDEN_SELECTION_COMPONENT_KEYS = {
+    "reference_objective",
+    "objective_correct",
+    "objective_accuracy",
+    "objective_score",
+    "relative_error",
+    "reference_lp",
+    "reference_answer",
+    "objective_gap",
+    "oracle",
+    "objective_correct_posthoc",
+}
 
 
 def is_posthoc_metric_row(row):
@@ -68,6 +82,11 @@ def _audit_rows(rows, source_name, require_selected=False):
             for phrase in FORBIDDEN_POLICY_PHRASES:
                 if phrase in policy and "no reference objective" not in policy:
                     issues.append(f"{source_name} row {idx} method={method} policy contains forbidden reference signal: {phrase}")
+            components = row.get("selection_components") or {}
+            if isinstance(components, dict):
+                bad_keys = sorted(set(components) & FORBIDDEN_SELECTION_COMPONENT_KEYS)
+                if bad_keys:
+                    issues.append(f"{source_name} row {idx} method={method} selection_components contain forbidden reference/oracle keys: {bad_keys}")
 
         if "objective_accuracy" in row or "objective_correct" in row or "objective_score" in row:
             if method in FORMAL_METHODS and "no reference" not in policy:

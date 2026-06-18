@@ -78,3 +78,56 @@ def test_generic_or_r1_does_not_apply_replenishment_critical_penalty():
 
     assert selected[0]["candidate_id"] == "c0"
     assert "critical_structure_penalty" not in selected[0]
+
+
+def test_type_aware_selection_prefers_non_k0_with_better_objective_terms_and_gates():
+    rows = [
+        _row("c0", structure_score=1.0, missing=[], consensus=0.2, feedback="needs repair"),
+        _row("c1", structure_score=0.9, missing=[], consensus=0.1, feedback=""),
+    ]
+    rows[0]["objective_term_coverage"] = 0.0
+    rows[0]["runtime_sec"] = 1.0
+    rows[0]["type_aware_static_validation"] = {
+        "score": 0.5,
+        "hard_gate_score": 0.5,
+        "hard_gate_failures": ["missing_capacity_constraint"],
+        "missing_items": ["missing_capacity_constraint", "missing_order_cost_term"],
+        "repair_feedback": ["Add capacity constraints.", "Add order cost terms."],
+    }
+    rows[0]["type_aware_static_validation_errors"] = ["missing_capacity_constraint", "missing_order_cost_term"]
+    rows[1]["objective_term_coverage"] = 1.0
+    rows[1]["runtime_sec"] = 1.0
+    rows[1]["type_aware_static_validation"] = {
+        "score": 1.0,
+        "hard_gate_score": 1.0,
+        "hard_gate_failures": [],
+        "missing_items": [],
+        "repair_feedback": [],
+    }
+    rows[1]["type_aware_static_validation_errors"] = []
+
+    selected = select_for_method("ReplenishVerifier-TypeAware", {"p0": rows}, _benchmark())
+
+    assert selected[0]["candidate_id"] == "c1"
+    assert selected[0]["method_name"] == "ReplenishVerifier-TypeAware"
+    assert selected[0]["uses_reference_objective_for_selection"] is False
+    assert selected[0]["selection_components"]["objective_term_coverage"] == 1.0
+    assert selected[0]["hard_gate_failures"] == []
+
+
+def test_type_aware_selection_components_do_not_include_reference_or_oracle_fields():
+    rows = [_row("c0", structure_score=1.0, missing=[])]
+    rows[0]["objective_term_coverage"] = 1.0
+    rows[0]["reference_objective"] = 123.0
+    rows[0]["objective_correct"] = 0.0
+    rows[0]["relative_error"] = 0.9
+    rows[0]["type_aware_static_validation"] = {"hard_gate_score": 1.0, "hard_gate_failures": [], "missing_items": []}
+    rows[0]["type_aware_static_validation_errors"] = []
+
+    selected = select_for_method("ReplenishVerifier-TypeAware", {"p0": rows}, _benchmark())
+    component_keys = set(selected[0]["selection_components"].keys())
+
+    assert "reference_objective" not in component_keys
+    assert "objective_correct" not in component_keys
+    assert "relative_error" not in component_keys
+    assert "reference_lp" not in component_keys

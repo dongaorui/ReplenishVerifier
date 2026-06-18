@@ -41,3 +41,41 @@ def test_posthoc_oracle_metric_rows_are_allowed_when_marked_nonformal():
     ], "paper_metrics", require_selected=False)
 
     assert issues == []
+
+
+def test_type_aware_selection_components_reject_reference_fields():
+    issues = _audit_rows([
+        _formal_row(
+            method_name="ReplenishVerifier-TypeAware",
+            selection_policy="TypeAware score over candidate signals; no reference objective",
+            selection_components={
+                "executable": 1.0,
+                "objective_term_coverage": 1.0,
+                "reference_objective": 42.0,
+            },
+        )
+    ], "main_results", require_selected=True)
+
+    assert any("selection_components" in issue and "reference_objective" in issue for issue in issues)
+
+
+def test_type_aware_allows_candidate_observable_components():
+    issues = _audit_rows([
+        _formal_row(
+            method_name="ReplenishVerifier-TypeAware",
+            selection_policy="TypeAware score over candidate static validation, LP structure, objective-term coverage, and consensus; no reference objective",
+            selection_components={
+                "executable": 1.0,
+                "solver_optimal": 1.0,
+                "structure_completeness": 1.0,
+                "constraint_coverage": 1.0,
+                "objective_term_coverage": 1.0,
+                "hard_gate_score": 1.0,
+                "consensus_score": 0.5,
+                "repair_feedback_count": 0.0,
+                "runtime_sec": 0.2,
+            },
+        )
+    ], "main_results", require_selected=True)
+
+    assert issues == []

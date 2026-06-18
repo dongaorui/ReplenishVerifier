@@ -69,3 +69,65 @@ def test_static_validation_reports_syntax_error():
     assert "syntax_error" in result["static_validation_errors"]
     assert result["has_build_model"] is False
     assert result["static_validation_score"] == 0.0
+
+
+def test_type_aware_static_validation_flags_missing_capacity_for_capacity_problem():
+    code = '''import pulp
+
+
+def build_model():
+    prob = pulp.LpProblem("cap", pulp.LpMinimize)
+    order = pulp.LpVariable.dicts("order", ((i, t) for i in range(2) for t in range(2)), lowBound=0)
+    inventory = pulp.LpVariable.dicts("inventory", ((i, t) for i in range(2) for t in range(2)), lowBound=0)
+    prob += order[(0, 0)] + inventory[(0, 0)], "total_cost"
+    prob += inventory[(0, 0)] == order[(0, 0)] - 3, "inventory_balance_0_0"
+    return prob
+'''
+
+    result = compute_static_validation(code, problem_type="multi_item_capacity")
+
+    assert "missing_capacity_constraint" in result["type_aware_static_validation_errors"]
+    assert result["type_aware_static_validation"]["hard_gate_failures"] == ["missing_capacity_constraint"]
+    assert result["type_aware_static_validation_score"] < 1.0
+
+
+def test_type_aware_static_validation_flags_missing_shortage_cost():
+    code = '''import pulp
+
+
+def build_model():
+    prob = pulp.LpProblem("shortage", pulp.LpMinimize)
+    order = pulp.LpVariable.dicts("order", range(2), lowBound=0)
+    inventory = pulp.LpVariable.dicts("inventory", range(2), lowBound=0)
+    shortage = pulp.LpVariable.dicts("shortage", range(2), lowBound=0)
+    prob += order[0] + inventory[0], "total_cost"
+    prob += inventory[0] + shortage[0] == order[0] - 4, "inventory_shortage_balance_0"
+    return prob
+'''
+
+    result = compute_static_validation(code, problem_type="single_item_multi_period_shortage")
+
+    assert "missing_shortage_cost_term" in result["type_aware_static_validation_errors"]
+    assert "missing_shortage_variable" not in result["type_aware_static_validation_errors"]
+
+
+def test_type_aware_static_validation_flags_fixed_order_big_m_failures():
+    code = '''import pulp
+
+
+def build_model():
+    prob = pulp.LpProblem("fixed", pulp.LpMinimize)
+    order = pulp.LpVariable.dicts("order", range(2), lowBound=0)
+    inventory = pulp.LpVariable.dicts("inventory", range(2), lowBound=0)
+    prob += order[0] + inventory[0], "total_cost"
+    prob += inventory[0] == order[0] - 4, "inventory_balance_0"
+    return prob
+'''
+
+    result = compute_static_validation(code, problem_type="fixed_order_cost_big_m")
+
+    errors = result["type_aware_static_validation_errors"]
+    assert "missing_fixed_order_binary" in errors
+    assert "missing_big_m_linking" in errors
+    assert "missing_fixed_order_cost_term" in errors
+    assert result["type_aware_static_validation"]["hard_gate_score"] < 1.0

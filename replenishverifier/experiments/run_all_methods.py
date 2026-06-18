@@ -225,6 +225,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
         "OR-R1-like Voting",
         "Structure-Grounded Consistency",
         "Structure-Only",
+        "ReplenishVerifier-TypeAware",
         "ReplenishVerifier-Full",
     ]
     ablation_rows = []
@@ -256,6 +257,7 @@ def run_experiments(benchmark_path, candidates_path, out_dir, k_values, timeout=
             "OptArgus-like Audit",
             "OptiRepair-like Repair-Prompt",
             "Structure-Only",
+            "ReplenishVerifier-TypeAware",
             "ReplenishVerifier-Full",
         ]:
             selected_k = select_for_method(method, eval_k, benchmark, allow_feasible_selection=allow_feasible_selection)

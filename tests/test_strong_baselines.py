@@ -9,7 +9,7 @@ from replenishverifier.experiments.baselines import (
     or_r1_like_voting_score,
     sirl_like_lp_stats_score,
 )
-from replenishverifier.experiments.methods import reward_components, select_for_method
+from replenishverifier.experiments.methods import METHODS, reward_components, select_for_method
 from replenishverifier.experiments.extract_case_studies import extract_case_studies
 from replenishverifier.utils.io import write_jsonl
 from replenishverifier.verifier.lp_parser import parse_lp_text
@@ -138,6 +138,10 @@ def test_reward_style_selector_uses_consensus_structure_and_no_reference_objecti
     assert "no reference objective" in selected_full[0]["selection_policy"]
     assert "structure-grounded" in selected_grounded[0]["selection_policy"]
     assert "no reference objective" in selected_grounded[0]["selection_policy"]
+
+
+def test_type_aware_method_is_registered_for_main_experiments():
+    assert "ReplenishVerifier-TypeAware" in METHODS
 
 
 def test_reward_style_methods_are_in_no_leakage_audit():
