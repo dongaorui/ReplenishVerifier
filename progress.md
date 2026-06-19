@@ -629,3 +629,87 @@ The user reported that `qwen3_8b_k4_50_v5_typeaware_selectionfix` successfully s
 - The archived real result directory `docs/experiment_results/qwen3_8b_k4_50_v5_typeaware_selectionfix_compare` contains Markdown/CSV summaries but no raw `main_results.jsonl` / `candidate_evaluations.jsonl`, so the new selector could not be applied retroactively there without rerunning from raw candidates.
 - New smoke/debug outputs are for code-path validation only and should not be used as paper evidence.
 - No commit or push was performed.
+
+## 2026-06-19 — Structure schema expected merge fix
+
+### User request
+
+The user asked to fix `replenishverifier/data/structure_schema.py` so `split_expected_structures()` correctly merges explicit instance `expected_structures` with the problem-type schema, then report changed files, old/new logic, tests, pytest result, caller impact, and avoid automatic git push.
+
+### Actions completed
+
+1. Restored planning-with-files context by reading `task_plan.md`, `findings.md`, and `progress.md`, then ran the planning session catchup script.
+2. Investigated `split_expected_structures()` and its caller `check_structures()`.
+3. Confirmed the root cause: when an explicit expected map had any truthy key, the old implementation treated those truthy keys as the whole required set and skipped default schema required structures.
+4. Added a regression test in `tests/test_structure_schema.py` before implementation and confirmed it failed as expected:
+   - Command: `python -m pytest tests/test_structure_schema.py::test_explicit_expected_structures_merge_with_default_schema -q`
+   - Result: failed because `required == ['capacity_constraint']` and did not include `inventory_balance`.
+5. Changed `split_expected_structures()` to start with schema required structures when `problem_type` is available, then union truthy explicit expected keys.
+6. Updated the caller-level test in `tests/test_structure_rules.py` to assert the new merge semantics through `check_structures()`.
+7. Saved the short execution plan at `docs/superpowers/plans/2026-06-19-structure-schema-merge-fix.md`.
+
+### Verification
+
+- Focused schema test after fix:
+  - Command: `python -m pytest tests/test_structure_schema.py -q`
+  - Result: `5 passed in 0.23s`
+- Structure schema/rules tests:
+  - Command: `python -m pytest tests/test_structure_schema.py tests/test_structure_rules.py -q`
+  - Result: `19 passed, 18 warnings in 0.79s`
+- Full suite:
+  - Command: `python -m pytest -q`
+  - Result: `150 passed, 52 warnings in 2.68s`
+- Compile/status check:
+  - Command: `python -m py_compile replenishverifier/data/structure_schema.py; if ($?) { git status --short -- ... }`
+  - Result: compile passed; relevant modified files are `structure_schema.py`, `test_structure_schema.py`, `test_structure_rules.py`, and the new plan file.
+
+### Notes
+
+- The first full-suite run after the production fix exposed an intentionally stale test in `tests/test_structure_rules.py` that still expected explicit structures to completely override schema defaults. The test was updated to the new merge contract.
+- `git diff --check` produced only existing LF/CRLF warnings in this Windows/WSL working copy; no whitespace error was reported before the output was truncated.
+- No git push, commit, LLM generation, or large experiment was run.
+
+## 2026-06-19 — k=8/100 diagnostics, TypeAware-Consensus, and empty-checklist fixes
+
+### User request
+
+The user asked to fix three issues exposed by the k=8 / 100-problem v6 experiment: diagnostics join MISSING rows for k4-k7 candidates, `ReplenishVerifier-TypeAware-Consensus` behaving too much like `ReplenishVerifier-TypeAware`, and empty type-aware checklists being scored as 0.0. Constraints: do not regenerate candidates, do not edit `run_generation.py`, do not use reference objective / objective_correct / oracle / reference LP / reference answer in formal selection, and provide Xshell rerun commands.
+
+### Actions completed
+
+1. Investigated diagnostics join and rank parsing paths in `diagnose_selection_metrics.py` and `paper_metrics.py`.
+2. Found that candidate-rank diagnostics only emitted k0-k3 plus `k_ge_4`, and selected/candidate matching had no normalized join audit or unmatched output.
+3. Added candidate-id normalization and rank parsing that supports IDs such as `Qwen3-8B_k0` through `Qwen3-8B_k7` without hard-coding k0-k3.
+4. Added diagnostics unmatched selected-row reporting to `diagnostic_join_unmatched.csv` with method, problem_id, candidate_id, parsed_candidate_rank, and reason.
+5. Added dynamic candidate-rank distribution columns (`k0` ... max observed k) instead of fixed k0-k3 aggregation.
+6. Found the empty checklist issue in `quality_signals._type_aware_checks()`: `len(passed) / max(len(checks), 1)` returned 0.0 when `checks == []`.
+7. Changed empty type-aware checklist score to neutral `1.0`; `hard_gate_score` remains `1.0` and errors remain empty.
+8. Strengthened TypeAware-Consensus behavior:
+   - Added `type_aware_score` to selection components.
+   - Kept consensus-first scoring for `ReplenishVerifier-TypeAware-Consensus`.
+   - Removed it from the global critical-structure 0.01 penalty set so critical structures act as reranking/penalty inside the consensus score rather than making it TypeAware-first/pool-filter-like.
+   - `ReplenishVerifier-TypeAware` still uses the TypeAware pool filter.
+9. Added regression tests for k4-k7 diagnostics joins, unique-rank fallback matching, unmatched selected rows, neutral empty checklist score, and TypeAware-Consensus non-alias behavior.
+
+### Verification
+
+- New RED tests initially failed for the expected reasons:
+  - empty checklist score was `0.0`;
+  - TypeAware-Consensus selected the same critical-pass candidate as TypeAware under the alias-like penalty;
+  - diagnostics lacked `diagnostic_join_unmatched` and dynamic k4-k7 outputs.
+- Focused tests after fixes:
+  - Command: `python -m pytest tests/test_static_validation.py tests/test_selection_gating.py tests/test_diagnose_selection_metrics.py tests/test_paper_metrics.py tests/test_run_all_methods_grouping.py tests/test_leakage_audit.py -q`
+  - Result: `53 passed in 1.34s`
+- Full suite:
+  - Command: `python -m pytest -q`
+  - Result: `156 passed, 52 warnings in 3.08s`
+- Diff/compile check:
+  - Command: `git diff --check; if ($?) { python -m py_compile replenishverifier/experiments/diagnose_selection_metrics.py replenishverifier/experiments/paper_metrics.py replenishverifier/experiments/methods.py replenishverifier/pipeline/quality_signals.py }`
+  - Result: no whitespace errors; only existing LF/CRLF warnings; compile passed.
+
+### Notes
+
+- The real 800 candidate/evaluation data for the k=8/100 experiment is on the user's Xshell environment, not in this checkout. No attempt was made to run that large experiment here.
+- No candidates were regenerated and `replenishverifier/llm/run_generation.py` was not modified.
+- Formal selection components still do not include reference objective, objective_correct, relative_error, oracle, reference LP, or reference answer fields.
+- No git push or commit was performed.

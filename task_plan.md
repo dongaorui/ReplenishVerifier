@@ -142,4 +142,58 @@ Notes:
 
 - `docs/experiment_results/qwen3_8b_k4_50_v5_typeaware_selectionfix_compare` contains archived Markdown/CSV diagnostics but no `main_results.jsonl` / `candidate_evaluations.jsonl`, so it could not be directly reprocessed with the new code in-place.
 - New diagnostics were generated on `runs/debug_v5_typeaware_selectionfix_demo15` and on the new debug smoke run for code-path validation only; these remain smoke/debug outputs, not paper evidence.
+
+### Phase 6 — Structure schema expected merge fix
+
+**Status:** complete on 2026-06-19
+
+Actions:
+
+- Investigated `split_expected_structures()` in `replenishverifier/data/structure_schema.py` and its `check_structures()` caller.
+- Confirmed the old logic used truthy explicit `expected_structures` as a full replacement required set whenever any truthy key existed.
+- Added a failing regression test for partial explicit expected maps merging with default schema required structures.
+- Fixed `split_expected_structures()` so schema required structures are the base when `problem_type` is known, then truthy explicit expected keys are unioned into required.
+- Updated caller-level structure-rules regression test to assert the new merge contract.
+- Saved execution plan at `docs/superpowers/plans/2026-06-19-structure-schema-merge-fix.md`.
+
+Verification:
+
+- RED test before fix: `python -m pytest tests/test_structure_schema.py::test_explicit_expected_structures_merge_with_default_schema -q` failed as expected because only `capacity_constraint` was required.
+- Focused tests: `python -m pytest tests/test_structure_schema.py tests/test_structure_rules.py -q` -> `19 passed, 18 warnings in 0.79s`.
+- Full suite: `python -m pytest -q` -> `150 passed, 52 warnings in 2.68s`.
+- `python -m py_compile replenishverifier/data/structure_schema.py` passed.
+
+Notes:
+
+- No caller code change was required; `check_structures()` automatically uses the corrected merge behavior.
+- One caller-level test expectation was updated because it encoded the obsolete full-override behavior.
+- No git push or commit was performed.
+
+### Phase 7 — k=8/100 diagnostics and TypeAware fixes
+
+**Status:** complete on 2026-06-19
+
+Actions:
+
+- Investigated diagnostics candidate-id parsing and selected/candidate join logic for k=8 IDs such as `Qwen3-8B_k4` through `Qwen3-8B_k7`.
+- Added normalized candidate-id/rank parsing and dynamic candidate-rank distribution columns.
+- Added `diagnostic_join_unmatched.csv` output for unmatched selected rows, including method, problem_id, candidate_id, parsed_candidate_rank, and reason.
+- Fixed empty type-aware checklist scoring so no-applicable-checklist cases are neutral (`score=1.0`) rather than penalized (`score=0.0`).
+- Made `ReplenishVerifier-TypeAware-Consensus` less alias-like by keeping it consensus-first and removing it from the global TypeAware-first critical-structure multiplier; critical missing structures remain in its own score/tie-breaker.
+- Added tests for k4-k7 diagnostics matching, unique parsed-rank matching, unmatched selected rows, empty checklist neutrality, and TypeAware-Consensus non-alias behavior.
+
+Verification:
+
+- New regression tests initially failed as expected before implementation.
+- Focused tests: `python -m pytest tests/test_static_validation.py tests/test_selection_gating.py tests/test_diagnose_selection_metrics.py tests/test_paper_metrics.py tests/test_run_all_methods_grouping.py tests/test_leakage_audit.py -q` -> `53 passed in 1.34s`.
+- Full suite: `python -m pytest -q` -> `156 passed, 52 warnings in 3.08s`.
+- `git diff --check` produced only existing LF/CRLF warnings; changed modules compiled successfully.
+
+Notes:
+
+- The user's real k=8/100 data is on Xshell, not in this checkout; no large experiment was run here.
+- No candidates were regenerated.
+- `replenishverifier/llm/run_generation.py` was not modified.
+- Formal selection remains no-reference: no `reference_objective`, `objective_correct`, oracle, reference LP, or reference answer is used in selection components.
+- No push or commit was performed.
 - Formal selection components for the new method do not include reference/oracle fields.

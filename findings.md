@@ -259,3 +259,37 @@ New diagnostics are explicitly separated from formal selection:
 New paper metric helpers add `table_by_problem_type.*` and `table_selection_collapse.*`. These can explain which problem types improve and why methods collapse to the same selected candidates.
 
 Verification completed with `python -m pytest -q`: `150 passed, 52 warnings in 3.33s`. The warning count is existing PuLP deprecation warnings. No LLM generation code or candidate generation path was modified.
+
+## 2026-06-19 — `split_expected_structures()` now merges schema defaults and explicit expected keys
+
+`split_expected_structures(expected, problem_type)` now treats the problem-type schema as the base required set whenever `problem_type` is known, then unions truthy explicit `expected_structures` keys into that required set. Previously, any non-empty explicit expected map replaced the schema required set entirely.
+
+Practical effect:
+
+- `expected=None` or `{}` with `problem_type` still uses schema fallback.
+- Partial explicit maps such as `{"capacity_constraint": True}` now add capacity to the default required structures instead of dropping default required structures like `inventory_balance`, `order_variable`, and `inventory_variable`.
+- Optional and forbidden metadata still come from the schema when available, with any required keys removed from those metadata lists.
+
+Caller impact: `check_structures()` receives the merged required list automatically through `split_expected_structures()`. Its regression test was updated to assert the new merge contract.
+
+Verification: `python -m pytest tests/test_structure_schema.py tests/test_structure_rules.py -q` passed with `19 passed, 18 warnings`; full `python -m pytest -q` passed with `150 passed, 52 warnings`.
+
+## 2026-06-19 — k=8 diagnostics and TypeAware fixes
+
+Three k=8/100 experiment issues were fixed at the code/test level without regenerating candidates or changing `run_generation.py`:
+
+1. Diagnostics candidate join/rank handling:
+   - Candidate IDs such as `Qwen3-8B_k4` through `Qwen3-8B_k7` are now parsed with a general `_kN` rank parser instead of being collapsed into `k_ge_4` for diagnostics.
+   - `compute_selection_diagnostics()` now uses stable selected/candidate matching by `problem_id` + normalized `candidate_id`, with unique parsed-rank fallback for compatible ID-format differences.
+   - Diagnostics now return and write `diagnostic_join_unmatched.csv` with method, problem_id, candidate_id, parsed_candidate_rank, and reason.
+
+2. TypeAware-Consensus is no longer forced through the same TypeAware-first critical penalty behavior:
+   - `ReplenishVerifier-TypeAware` keeps its critical-pass pool filter.
+   - `ReplenishVerifier-TypeAware-Consensus` remains consensus-first and applies critical missing structures inside its own score/tie-breaker rather than via the global 0.01 critical-structure multiplier.
+   - Selection components now expose `type_aware_score`, `hard_gate_score`, consensus, structure, constraint, objective-term, and critical-missing fields, without reference/oracle fields.
+
+3. Empty type-aware checklists are neutral:
+   - For problem types with no applicable type-aware checklist, such as `single_period_newsvendor`, the type-aware score is now `1.0` rather than `0.0`.
+   - `hard_gate_score` remains `1.0`, `hard_gate_failures` remains empty, and `type_aware_static_validation_errors` remains empty.
+
+Verification: focused diagnostics/selection/static-validation/leakage tests passed with `53 passed`; full `python -m pytest -q` passed with `156 passed, 52 warnings`.
