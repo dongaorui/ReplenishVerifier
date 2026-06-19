@@ -1,0 +1,20 @@
+method,n,objective_term_coverage
+Best-of-K,50,0.9866666666666667
+Consensus only,50,0.9866666666666667
+Direct,50,0.9866666666666667
+OR-R1-like Voting,50,0.9866666666666667
+OptArgus-like Audit,50,0.9866666666666667
+OptiRepair-like Repair-Prompt,50,0.9866666666666667
+ReplenishVerifier-Full,50,0.9866666666666667
+ReplenishVerifier-Repair,50,0.9866666666666667
+ReplenishVerifier-TypeAware,50,0.9866666666666667
+SIRL-like LP-Stats,50,0.9866666666666667
+Solver + Consensus,50,0.9866666666666667
+Solver + Structure,50,0.9866666666666667
+Solver + Structure + Consensus,50,0.9866666666666667
+Solver only,50,0.9866666666666667
+Solver-Filter,50,0.9866666666666667
+Structure + Consensus,50,0.9866666666666667
+Structure only,50,0.9866666666666667
+Structure-Grounded Consistency,50,0.9866666666666667
+Structure-Only,50,0.9866666666666667
