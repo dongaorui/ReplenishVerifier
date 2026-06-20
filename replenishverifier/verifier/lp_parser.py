@@ -208,5 +208,9 @@ def parse_lp_text(text, path="<memory>"):
 
 def parse_lp_file(path):
     path = Path(path)
+    if not path.is_file():
+        raise RuntimeError(f"LP parse failed: LP file does not exist at {path}")
     text = path.read_text(encoding="utf-8", errors="ignore")
+    if not text.strip():
+        raise RuntimeError(f"LP parse failed: LP file is empty at {path}")
     return parse_lp_text(text, path=str(path))

@@ -296,6 +296,28 @@ Verification: focused diagnostics/selection/static-validation/leakage tests pass
 
 ## 2026-06-20 — Executor now avoids top-level candidate solver code
 
+## 2026-06-20 — LP export/parse pipeline now fails loudly instead of returning silent empty stats
+
+After the executor top-level solver fix, the next all-zero result symptom pointed to the LP artifact layer. Local minimal reproduction with a valid PuLP model showed the happy path can export and parse LP correctly, so the risk was the failure path: failed or missing LP exports could fall through as `parsed=None`, which `compute_lp_stats(None)` represents as an empty artifact.
+
+The hardened contract is now:
+
+- `solve_pulp_model()` must call `model.writeLP(str(lp_path))` when `lp_path` is provided.
+- After `writeLP`, the LP path must exist and be non-empty, otherwise `solve_pulp_model()` raises `RuntimeError("LP export failed: ...")`.
+- Successful execution records `lp_exported=True` and `lp_export_error=None` in the execution result.
+- `execute_generated_code()` propagates `lp_exported` and `lp_export_error`; export failures become `executable=False`, `status="Error"`, and an error traceback containing `LP export failed`.
+- `parse_lp_file()` now reads from the on-disk `lp_path` and raises if the file is missing or empty.
+- `evaluate_candidate()` annotates empty `lp_stats` with `error="LP export failed"` when the executor reports an export failure, rather than leaving only default zeros.
+
+Verification:
+
+- New regression tests cover missing LP file after `writeLP`, valid export stats through `evaluate_candidate`, and explicit LP export failure errors.
+- Focused LP/selection tests passed with `47 passed, 18 warnings`.
+- Full test suite passed with `164 passed, 52 warnings`.
+- A manual minimal `evaluate_candidate()` check confirmed `lp_exported=True`, `constraints_count=1`, `objective_present=True`, and `hard_selection_gate.passed=True`.
+
+No reference objective, oracle, or objective-correctness signal was added to formal selection.
+
 `evaluate_candidate()` in `replenishverifier/experiments/methods.py` calls `execute_generated_code()`; it does not have a separate execution path. The execution bug was inside `replenishverifier/solver/code_executor.py`.
 
 Root cause:

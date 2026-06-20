@@ -221,3 +221,33 @@ Notes:
 
 - The old main-block test already proved `if __name__ == '__main__'` was not executed; the newly fixed gap was top-level solver/export code outside a main guard.
 - `evaluate_candidate` still calls `execute_generated_code`; the fix is intentionally centralized in the executor.
+
+### Phase 9 — LP export and parse failure hardening
+
+**Status:** complete on 2026-06-20
+
+Actions:
+
+- Investigated the LP export/parse path after execution became healthy but `lp_stats` still appeared empty in the user's experiment.
+- Confirmed `solve_pulp_model()` previously called `model.writeLP()` but did not verify that the LP file was actually created and non-empty.
+- Added RED regression tests for:
+  - `solve_pulp_model()` raising when `writeLP()` does not create a file;
+  - `evaluate_candidate()` producing real LP stats for a valid exported LP;
+  - `evaluate_candidate()` recording explicit LP export failure errors instead of silently returning only empty stats.
+- Hardened `solve_pulp_model()` so LP export failures raise `RuntimeError("LP export failed: ...")` and successful exports include `lp_exported=True` / `lp_export_error=None`.
+- Propagated LP export status through `execute_generated_code()` and `evaluate_candidate()`.
+- Hardened `parse_lp_file()` to raise if the LP path does not exist or is empty.
+- Kept selection no-reference: no `reference_objective`, oracle, or `objective_correct` signal was added to formal selection.
+
+Verification:
+
+- New RED tests initially failed with missing `lp_exported` fields and no raise on missing LP file.
+- New LP export tests after fix: `3 passed in 1.31s`.
+- Focused LP/selection tests: `python -m pytest tests/test_executor_solver_fallback.py tests/test_structure_rules.py tests/test_strong_baselines.py tests/test_selection_gating.py -q` -> `47 passed, 18 warnings in 2.90s`.
+- Full suite: `python -m pytest -q` -> `164 passed, 52 warnings in 4.98s`.
+- Manual minimal `evaluate_candidate()` check confirmed `lp_exported=True`, `lp_stats.constraints_count=1`, `objective_present=True`, and `hard_selection_gate.passed=True`.
+
+Notes:
+
+- The valid-model local path already exported correctly; the fix addresses missing hard assertions/error propagation so failed LP export/parse cannot silently masquerade as an empty LP artifact.
+- No candidate generation, selection oracle, or paper-metric logic was introduced.

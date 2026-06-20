@@ -111,6 +111,8 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
                 feedback = f"LP parse or structure check failed: {exc}"
 
     lp_stats = compute_lp_stats(parsed)
+    if not lp_stats.get("lp_exported") and execution.get("lp_export_error"):
+        lp_stats["error"] = "LP export failed"
     optargus_audit = compute_optargus_audit(parsed, execution)
     sirl_lp_stats_score = sirl_like_lp_stats_score(execution, lp_stats)
     optargus_audit_score = optargus_like_audit_score(execution, optargus_audit)

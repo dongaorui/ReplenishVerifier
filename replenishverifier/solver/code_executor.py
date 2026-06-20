@@ -69,6 +69,8 @@ try:
         "status": solve_result.get("status"),
         "objective": solve_result.get("objective"),
         "lp_path": solve_result.get("lp_path"),
+        "lp_exported": bool(solve_result.get("lp_exported")),
+        "lp_export_error": solve_result.get("lp_export_error"),
         "solver_lp_export_time": float(solve_result.get("solver_lp_export_time") or 0.0),
         "lp_write_time": float(solve_result.get("lp_write_time") or solve_result.get("solver_lp_export_time") or 0.0),
         "solver_time": float(solve_result.get("solver_time") or 0.0),
@@ -80,6 +82,8 @@ except Exception:
         "status": "Error",
         "objective": None,
         "lp_path": None,
+        "lp_exported": False,
+        "lp_export_error": "LP export failed" if "LP export failed" in traceback.format_exc() else None,
         "solver_lp_export_time": 0.0,
         "lp_write_time": 0.0,
         "solver_time": 0.0,
@@ -94,6 +98,8 @@ def _execution_error(status, error, start, lp_path=None):
         "status": status,
         "objective": None,
         "lp_path": lp_path,
+        "lp_exported": False,
+        "lp_export_error": "LP export failed" if error and "LP export failed" in str(error) else None,
         "solver_lp_export_time": 0.0,
         "lp_write_time": 0.0,
         "solver_time": 0.0,
@@ -143,6 +149,10 @@ def execute_generated_code(generated_code, run_dir, candidate_id="candidate", ti
     result["solver_lp_export_time"] = float(result.get("solver_lp_export_time") or 0.0)
     result["lp_write_time"] = float(result.get("lp_write_time") or result.get("solver_lp_export_time") or 0.0)
     result["solver_time"] = float(result.get("solver_time") or 0.0)
+    result["lp_exported"] = bool(result.get("lp_exported"))
+    if "lp_export_error" not in result:
+        error_text = str(result.get("error") or "")
+        result["lp_export_error"] = "LP export failed" if "LP export failed" in error_text else None
 
     if proc.stderr and result.get("error") is None:
         result["stderr"] = proc.stderr

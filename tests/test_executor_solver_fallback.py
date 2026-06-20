@@ -1,5 +1,6 @@
 import textwrap
 
+import pytest
 import pulp
 
 from replenishverifier.experiments.methods import evaluate_candidate
@@ -33,10 +34,17 @@ class FakeLpProblem:
 
     def writeLP(self, path):
         self.written_lp_path = path
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write("Minimize\nOBJ: x\nSubject To\nc1: x >= 1\nEnd\n")
 
     def solve(self, solver):
         self.solved_with = solver
         return 1
+
+
+class NoWriteLpProblem(FakeLpProblem):
+    def writeLP(self, path):
+        self.written_lp_path = path
 
 
 def test_solve_pulp_model_uses_coin_cmd_when_pulp_cbc_unavailable(monkeypatch, tmp_path):
@@ -50,9 +58,20 @@ def test_solve_pulp_model_uses_coin_cmd_when_pulp_cbc_unavailable(monkeypatch, t
     assert result["status"] == "Optimal"
     assert result["objective"] == 3.0
     assert result["lp_path"].endswith("model.lp")
+    assert result["lp_exported"] is True
+    assert result["lp_export_error"] is None
+    assert (tmp_path / "model.lp").is_file()
     assert isinstance(model.solved_with, RecordingCoinCmd)
     assert RecordingCoinCmd.calls[0][1]["msg"] is False
     assert RecordingCoinCmd.calls[0][1]["timeLimit"] == 7
+
+
+def test_solve_pulp_model_raises_when_write_lp_does_not_create_file(monkeypatch, tmp_path):
+    monkeypatch.setattr(pulp, "PULP_CBC_CMD", FailingPulpCbcCmd)
+    monkeypatch.setattr(pulp, "COIN_CMD", RecordingCoinCmd)
+
+    with pytest.raises(RuntimeError, match="LP export failed"):
+        solve_pulp_model(NoWriteLpProblem(), lp_path=tmp_path / "missing.lp", msg=False, time_limit=7)
 
 
 def test_execute_generated_code_ignores_main_block_solver_and_uses_project_solver(tmp_path):
@@ -117,6 +136,85 @@ def test_execute_generated_code_ignores_top_level_candidate_solver_and_uses_proj
     assert result["objective"] == 2.0
     assert result["lp_path"] is not None
     assert result["error"] is None
+
+
+def test_evaluate_candidate_records_real_lp_stats_for_valid_export(tmp_path):
+    candidate = {
+        "problem_id": "p0",
+        "candidate_id": "c0",
+        "method": "unit",
+        "generated_code": textwrap.dedent(
+            """
+            import pulp
+
+
+            def build_model():
+                model = pulp.LpProblem('valid_export', pulp.LpMinimize)
+                q = pulp.LpVariable('q', lowBound=0)
+                model += 2 * q, 'order_cost_objective'
+                model += q >= 5, 'demand_satisfaction'
+                return model
+            """
+        ),
+    }
+    reference = {
+        "problem_type": "single_period_newsvendor",
+        "difficulty": "easy",
+        "expected_structures": {},
+        "reference_objective": 10.0,
+        "reference_status": "Optimal",
+    }
+
+    row = evaluate_candidate(candidate, reference, work_dir=tmp_path, timeout=10)
+
+    assert row["execution"]["executable"] is True
+    assert row["execution"]["lp_exported"] is True
+    assert row["execution"]["lp_export_error"] is None
+    assert row["lp_stats"]["lp_exported"] is True
+    assert row["lp_stats"]["constraints_count"] > 0
+    assert row["lp_stats"]["objective_present"] is True
+    assert row["hard_selection_gate"]["passed"] is True
+
+
+def test_evaluate_candidate_records_lp_export_failure_error(tmp_path):
+    candidate = {
+        "problem_id": "p0",
+        "candidate_id": "c0",
+        "method": "unit",
+        "generated_code": textwrap.dedent(
+            """
+            import pulp
+
+
+            def build_model():
+                model = pulp.LpProblem('write_failure', pulp.LpMinimize)
+                q = pulp.LpVariable('q', lowBound=0)
+                model += q, 'objective'
+                model += q >= 1, 'minimum_q'
+
+                def fail_write_lp(path):
+                    raise OSError('cannot write lp file')
+
+                model.writeLP = fail_write_lp
+                return model
+            """
+        ),
+    }
+    reference = {
+        "problem_type": "single_period_newsvendor",
+        "difficulty": "easy",
+        "expected_structures": {},
+        "reference_objective": 1.0,
+        "reference_status": "Optimal",
+    }
+
+    row = evaluate_candidate(candidate, reference, work_dir=tmp_path, timeout=10)
+
+    assert row["execution"]["executable"] is False
+    assert row["execution"]["lp_exported"] is False
+    assert "LP export failed" in row["execution"]["error"]
+    assert row["lp_stats"]["lp_exported"] is False
+    assert row["lp_stats"].get("error") == "LP export failed"
 
 
 def test_evaluate_candidate_runtime_fields_are_numeric_when_execution_or_parse_fails(tmp_path):

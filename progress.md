@@ -767,3 +767,78 @@ The user reported that after rerunning, `main_results` was still all zeros and `
 ### Notes
 
 No git commit or push was performed.
+
+## 2026-06-20 — LP export / parse pipeline hardening
+
+### User request
+
+The user reported that execution is now healthy (`code_execution_time` normal, `build_model()` and `solve_pulp_model()` called), but `main_results` is still all zero because LP stats show `lp_exported=false`, `constraints_count=0`, and `objective_present=false`. The user asked to fix LP export/parse fallback behavior, ensure no silent empty stats, add tests, and keep selection no-reference.
+
+### Root-cause investigation
+
+1. Read `replenishverifier/solver/pulp_runner.py`:
+   - `solve_pulp_model()` called `model.writeLP(str(lp_path))` but did not verify file existence or non-empty content.
+   - It did not expose `lp_exported` / `lp_export_error` fields.
+2. Read `replenishverifier/verifier/lp_parser.py`:
+   - `parse_lp_file()` read from `lp_path`, but did not explicitly reject missing/empty LP files before parsing.
+3. Read `replenishverifier/experiments/baselines.py::compute_lp_stats`:
+   - `parsed=None` returns default empty LP stats (`lp_exported=False`, zero constraints, no objective).
+4. Read `replenishverifier/experiments/methods.py::evaluate_candidate`:
+   - parse failures left `parsed=None`, then downstream stats became empty; LP export failures were not explicitly surfaced in `lp_stats`.
+5. Ran a minimal local `evaluate_candidate()` on a valid model and confirmed the happy path already exported/parses correctly locally; the missing behavior was hard failure/error propagation when LP export/parse is not real.
+
+### Actions completed
+
+1. Added RED regression tests in `tests/test_executor_solver_fallback.py`:
+   - `test_solve_pulp_model_raises_when_write_lp_does_not_create_file`
+   - `test_evaluate_candidate_records_real_lp_stats_for_valid_export`
+   - `test_evaluate_candidate_records_lp_export_failure_error`
+2. Confirmed RED failure before implementation:
+   - `solve_pulp_model()` did not raise when `writeLP()` failed to create a file.
+   - execution rows lacked `lp_exported` fields.
+3. Modified `replenishverifier/solver/pulp_runner.py`:
+   - added `_export_lp()` helper;
+   - verifies LP file exists and is non-empty after `writeLP()`;
+   - raises `RuntimeError("LP export failed: ...")` on failure;
+   - returns `lp_exported=True`, `lp_export_error=None` on success.
+4. Modified `replenishverifier/solver/code_executor.py`:
+   - propagates `lp_exported` and `lp_export_error` from runner output;
+   - marks export failures as structured execution errors.
+5. Modified `replenishverifier/verifier/lp_parser.py`:
+   - `parse_lp_file()` now raises for missing or empty LP path.
+6. Modified `replenishverifier/experiments/methods.py`:
+   - when `execution.lp_export_error` is present and `lp_stats.lp_exported` is false, records `lp_stats["error"] = "LP export failed"`.
+7. Did not use `reference_objective`, oracle, `objective_correct`, or reference LP in formal selection.
+
+### Verification
+
+- New LP export regression tests after fix:
+  - Command: `python -m pytest tests/test_executor_solver_fallback.py::test_solve_pulp_model_raises_when_write_lp_does_not_create_file tests/test_executor_solver_fallback.py::test_evaluate_candidate_records_real_lp_stats_for_valid_export tests/test_executor_solver_fallback.py::test_evaluate_candidate_records_lp_export_failure_error -q`
+  - Result: `3 passed in 1.31s`.
+- Focused LP/selection tests:
+  - Command: `python -m pytest tests/test_executor_solver_fallback.py tests/test_structure_rules.py tests/test_strong_baselines.py tests/test_selection_gating.py -q`
+  - Result: `47 passed, 18 warnings in 2.90s`.
+- Full suite:
+  - Command: `python -m pytest -q`
+  - Result: `164 passed, 52 warnings in 4.98s`.
+- Manual minimal evaluate-candidate check:
+  - Confirmed `execution.lp_exported == True`.
+  - Confirmed `lp_stats.lp_exported == True`.
+  - Confirmed `lp_stats.constraints_count == 1`.
+  - Confirmed `lp_stats.objective_present == True`.
+  - Confirmed `hard_selection_gate.passed == True`.
+
+### Changed files
+
+- `replenishverifier/solver/pulp_runner.py`
+- `replenishverifier/solver/code_executor.py`
+- `replenishverifier/verifier/lp_parser.py`
+- `replenishverifier/experiments/methods.py`
+- `tests/test_executor_solver_fallback.py`
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+### Notes
+
+No git commit or push was performed for this LP pipeline fix yet.
