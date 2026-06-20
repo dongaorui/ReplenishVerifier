@@ -40,6 +40,7 @@ def test_main_methods_are_concise_and_appendix_keeps_legacy_methods():
         "Structure only",
         "Consensus only",
         "ReplenishVerifier-Full",
+        "ReplenishVerifier-ConsensusSafe",
         "ReplenishVerifier-TypeAware",
         "ReplenishVerifier-TypeAware-Consensus",
     ]
@@ -193,6 +194,84 @@ def test_type_aware_selection_prefers_non_k0_with_better_objective_terms_and_gat
     assert selected[0]["uses_reference_objective_for_selection"] is False
     assert selected[0]["selection_components"]["objective_term_coverage"] == 1.0
     assert selected[0]["hard_gate_failures"] == []
+
+
+def test_consensus_safe_is_main_method_before_type_aware_ablation():
+    assert "ReplenishVerifier-ConsensusSafe" in MAIN_METHODS
+    assert MAIN_METHODS.index("ReplenishVerifier-ConsensusSafe") < MAIN_METHODS.index("ReplenishVerifier-TypeAware")
+    assert "ReplenishVerifier-ConsensusSafe" in METHODS
+
+
+def test_consensus_safe_prefers_consensus_when_candidates_are_lp_safe():
+    rows = [
+        _row("c0", structure_score=0.9, missing=[], consensus=0.2),
+        _row("c1", structure_score=0.75, missing=[], consensus=0.9),
+    ]
+    for row in rows:
+        row["objective_term_coverage"] = 1.0
+        row["lp_stats"] = {"lp_exported": True, "objective_present": True, "constraints_count": 3, "variables_count": 3}
+        row["type_aware_static_validation"] = {"score": 1.0, "hard_gate_score": 1.0, "hard_gate_failures": [], "missing_items": []}
+        row["type_aware_static_validation_errors"] = []
+
+    selected = select_for_method("ReplenishVerifier-ConsensusSafe", {"p0": rows}, _benchmark())
+
+    assert selected[0]["candidate_id"] == "c1"
+    assert selected[0]["selection_components"]["consensus_score"] == 0.9
+    assert selected[0]["selection_components"]["lp_health_score"] == 1.0
+
+
+def test_consensus_safe_keeps_full_like_candidate_when_consensus_gain_is_small_and_safety_is_weaker():
+    rows = [
+        _row("c0", score=0.88, structure_score=0.9, missing=[], consensus=0.55),
+        _row("c1", score=0.70, structure_score=0.6, missing=[], consensus=0.58),
+    ]
+    rows[0]["objective_term_coverage"] = 1.0
+    rows[0]["lp_stats"] = {"lp_exported": True, "objective_present": True, "constraints_count": 3, "variables_count": 3}
+    rows[0]["type_aware_static_validation"] = {"score": 1.0, "hard_gate_score": 1.0, "hard_gate_failures": [], "missing_items": []}
+    rows[0]["type_aware_static_validation_errors"] = []
+    rows[1]["objective_term_coverage"] = 0.5
+    rows[1]["lp_stats"] = {"lp_exported": True, "objective_present": True, "constraints_count": 1, "variables_count": 3}
+    rows[1]["type_aware_static_validation"] = {"score": 0.7, "hard_gate_score": 0.7, "hard_gate_failures": ["weak_safety"], "missing_items": ["weak_safety"]}
+    rows[1]["type_aware_static_validation_errors"] = ["weak_safety"]
+
+    selected = select_for_method("ReplenishVerifier-ConsensusSafe", {"p0": rows}, _benchmark())
+
+    assert selected[0]["candidate_id"] == "c0"
+    assert selected[0]["selection_components"]["full_score"] == 0.88
+
+
+def test_consensus_safe_demotes_close_consensus_candidate_with_critical_missing_structure():
+    rows = [
+        _row("c0", structure_score=0.95, missing=["capacity_constraint"], consensus=0.84),
+        _row("c1", structure_score=0.70, missing=[], consensus=0.82),
+    ]
+    for row in rows:
+        row["objective_term_coverage"] = 1.0
+        row["lp_stats"] = {"lp_exported": True, "objective_present": True, "constraints_count": 3, "variables_count": 3}
+        row["type_aware_static_validation"] = {"score": 1.0, "hard_gate_score": 1.0, "hard_gate_failures": [], "missing_items": []}
+        row["type_aware_static_validation_errors"] = []
+
+    selected = select_for_method("ReplenishVerifier-ConsensusSafe", {"p0": rows}, _benchmark())
+
+    assert selected[0]["candidate_id"] == "c1"
+    assert selected[0]["selection_components"]["critical_missing_count"] == 0.0
+
+
+def test_consensus_safe_components_do_not_include_reference_or_oracle_fields():
+    rows = [_row("c0", structure_score=1.0, missing=[], consensus=1.0)]
+    rows[0]["reference_objective"] = 123.0
+    rows[0]["objective_correct"] = 0.0
+    rows[0]["relative_error"] = 0.9
+    rows[0]["oracle_rank"] = 1
+    rows[0]["lp_stats"] = {"lp_exported": True, "objective_present": True, "constraints_count": 3, "variables_count": 3}
+    rows[0]["type_aware_static_validation"] = {"score": 1.0, "hard_gate_score": 1.0, "hard_gate_failures": [], "missing_items": []}
+    rows[0]["type_aware_static_validation_errors"] = []
+
+    selected = select_for_method("ReplenishVerifier-ConsensusSafe", {"p0": rows}, _benchmark())
+    component_keys = set(selected[0]["selection_components"])
+
+    assert component_keys.isdisjoint({"reference_objective", "objective_correct", "relative_error", "oracle", "oracle_rank", "reference_lp", "reference_answer"})
+    assert selected[0]["uses_reference_objective_for_selection"] is False
 
 
 def test_type_aware_consensus_prefers_consensus_before_structure_when_structure_is_safe():

@@ -1,4 +1,4 @@
-from replenishverifier.experiments.audit_leakage import _audit_rows
+from replenishverifier.experiments.audit_leakage import FORMAL_METHODS, _audit_rows
 
 
 def _formal_row(**updates):
@@ -41,6 +41,10 @@ def test_posthoc_oracle_metric_rows_are_allowed_when_marked_nonformal():
     ], "paper_metrics", require_selected=False)
 
     assert issues == []
+
+
+def test_consensus_safe_is_covered_by_formal_leakage_audit():
+    assert "ReplenishVerifier-ConsensusSafe" in FORMAL_METHODS
 
 
 def test_type_aware_selection_components_reject_reference_fields():

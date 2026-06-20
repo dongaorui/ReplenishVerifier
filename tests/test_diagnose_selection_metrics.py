@@ -193,6 +193,41 @@ def test_compute_avoidable_error_summary_counts_posthoc_opportunities():
     assert by_method["ReplenishVerifier-TypeAware-Consensus"]["objective_mismatch_with_objective_correct_available"] == 0
 
 
+def test_diagnose_selection_metrics_writes_consensus_safe_counterfactual(tmp_path):
+    exp_dir = tmp_path / "exp"
+    exp_dir.mkdir()
+    best = _selected("Best-of-K", "p0", "m_k1", objective_correct=1.0, missing=[])
+    safe = _selected("ReplenishVerifier-ConsensusSafe", "p0", "m_k0", objective_correct=0.0, missing=["capacity_constraint"])
+    safe["selection_components"] = {
+        "consensus_score": 0.9,
+        "lp_health_score": 1.0,
+        "critical_missing_count": 1.0,
+        "constraint_coverage": 0.5,
+        "objective_term_coverage": 1.0,
+        "structure_completeness": 0.5,
+    }
+    best["selection_components"] = {
+        "consensus_score": 0.2,
+        "lp_health_score": 1.0,
+        "critical_missing_count": 0.0,
+        "constraint_coverage": 1.0,
+        "objective_term_coverage": 1.0,
+        "structure_completeness": 1.0,
+    }
+    write_jsonl(exp_dir / "main_results.jsonl", [best, safe])
+    write_jsonl(exp_dir / "candidate_evaluations.jsonl", [dict(best, method_name=None), dict(safe, method_name=None)])
+
+    result = diagnose_selection_metrics(exp_dir=exp_dir, out_dir=exp_dir / "diag")
+
+    assert (exp_dir / "diag" / "consensus_safe_counterfactual.csv").exists()
+    assert (exp_dir / "diag" / "consensus_safe_counterfactual.md").exists()
+    assert result["consensus_safe_counterfactual"][0]["problem_id"] == "p0"
+    assert result["consensus_safe_counterfactual"][0]["objective_delta_vs_best_of_k"] == -1.0
+    text = (exp_dir / "diag" / "consensus_safe_counterfactual.md").read_text(encoding="utf-8")
+    assert "post-hoc diagnostics only" in text
+    assert "critical_missing" in text
+
+
 def test_diagnose_selection_metrics_writes_new_diagnostic_reports(tmp_path):
     exp_dir = tmp_path / "exp"
     exp_dir.mkdir()

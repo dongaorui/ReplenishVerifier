@@ -2,6 +2,7 @@ import csv
 
 from replenishverifier.experiments.build_paper_metrics import build_paper_metrics
 from replenishverifier.experiments.paper_metrics import (
+    DEFAULT_PAPER_METHODS,
     compute_metrics_by_problem_type,
     compute_selected_method_metrics,
     compute_error_type_summary,
@@ -144,6 +145,10 @@ def test_compute_selection_diagnostics_outputs_same_rate_and_rank_distribution()
     assert {row["method"]: row["k0"] for row in distribution} == {"Best-of-K": 1, "Direct": 2}
     debug = diagnostics["selection_score_debug"]
     assert {"method", "problem_id", "candidate_id", "objective_correct_posthoc", "selected"} <= set(debug[0])
+
+
+def test_default_paper_methods_include_consensus_safe():
+    assert "ReplenishVerifier-ConsensusSafe" in DEFAULT_PAPER_METHODS
 
 
 def test_compute_metrics_by_problem_type_groups_selected_methods_and_problem_types():

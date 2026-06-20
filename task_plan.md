@@ -251,3 +251,33 @@ Notes:
 
 - The valid-model local path already exported correctly; the fix addresses missing hard assertions/error propagation so failed LP export/parse cannot silently masquerade as an empty LP artifact.
 - No candidate generation, selection oracle, or paper-metric logic was introduced.
+
+### Phase 10 — ConsensusSafe no-reference selector
+
+**Status:** complete on 2026-06-20
+
+Actions:
+
+- Added `ReplenishVerifier-ConsensusSafe` as a main-table method after `ReplenishVerifier-Full` and before TypeAware ablations.
+- Designed it as a Full-safe consensus reranker: it starts from executable + Optimal candidates, preserves the ReplenishVerifier-Full raw score as the dominant base signal, then adds candidate objective consensus, LP artifact health, constraint/objective-term/type-aware safety, and static/code validity signals.
+- Kept formal selection no-reference: selector components do not include `reference_objective`, `objective_correct`, `relative_error`, oracle fields, reference LP, or reference answers.
+- Added leakage-audit coverage for `ReplenishVerifier-ConsensusSafe`.
+- Added `consensus_safe_counterfactual.csv/md` diagnostics comparing ConsensusSafe vs Best-of-K choices using post-hoc objective labels only for explanation, never for selection.
+- Added paper-metrics default coverage so by-problem-type/collapse tables include ConsensusSafe.
+- Saved the implementation plan at `docs/superpowers/plans/2026-06-20-consensus-safe-selector.md`.
+
+Verification:
+
+- RED tests first failed because the method was unregistered and missing from leakage audit.
+- Focused selector/leakage/paper/diagnostic tests: `python -m pytest tests/test_selection_gating.py tests/test_leakage_audit.py tests/test_run_all_methods_grouping.py tests/test_paper_metrics.py tests/test_diagnose_selection_metrics.py -q` -> `54 passed in 1.32s`.
+- Full suite: `python -m pytest -q` -> `172 passed, 52 warnings in 5.06s`.
+- Smoke run: `runs/debug_consensus_safe_demo15` generated with demo candidates; main methods include `ReplenishVerifier-ConsensusSafe`.
+- Smoke leakage audit passed: `LEAKAGE AUDIT PASSED: no reference_objective usage detected in formal selection scores.`
+- Smoke sanity metrics showed `ReplenishVerifier-ConsensusSafe` tied `ReplenishVerifier-Full` and `Best-of-K` on the demo run; this remains smoke validation only.
+
+Notes:
+
+- The requested real inputs `data/generated/test_100_v6.jsonl` and `data/candidates/qwen3_8b_k8_100_v6_typeaware.jsonl` are not present in this checkout, so the real k=8/100 rerun could not be completed locally.
+- Running the exact requested command failed honestly with `ValueError: No benchmark rows found: data/generated/test_100_v6.jsonl`; no fake result was generated.
+- No candidates were regenerated and `replenishverifier/llm/run_generation.py` was not modified.
+- To rerun on the Xshell environment that contains the files, use the commands recorded in `progress.md`.

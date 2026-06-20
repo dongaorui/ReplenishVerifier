@@ -318,6 +318,41 @@ Verification:
 
 No reference objective, oracle, or objective-correctness signal was added to formal selection.
 
+## 2026-06-20 — ConsensusSafe selector design and diagnostics
+
+`ReplenishVerifier-ConsensusSafe` is now a main-table no-reference selector intended to be safer than the earlier consensus-dominant TypeAware-Consensus variant.
+
+Selection contract:
+
+- Hard gate still requires executable + Optimal candidates.
+- The dominant base signal is the candidate's existing ReplenishVerifier-Full raw score (`base_replenishverifier_score` / pre-overwrite `raw_inference_score`).
+- Candidate objective consensus is a bonus/reranking signal, not an oracle signal and not dominant enough to override materially weaker safety signals.
+- LP artifact health (`lp_exported`, objective present, constraints count, variables count), constraint coverage, objective-term coverage, type-aware hard gate score, type-aware score, code validity, static validation, critical missing count, repair feedback count, and runtime are candidate-observable tie-break/safety signals.
+- `selection_components` intentionally excludes `reference_objective`, `objective_correct`, `relative_error`, oracle fields, `reference_lp`, and `reference_answer`; leakage audit covers the new method.
+
+Diagnostics:
+
+- `diagnose_selection_metrics` now writes `consensus_safe_counterfactual.csv` and `.md`.
+- These files compare `ReplenishVerifier-ConsensusSafe` vs `Best-of-K` when they choose different candidates.
+- The diagnostic table includes post-hoc objective correctness deltas plus non-reference signal columns explaining what ConsensusSafe saw: consensus, LP health, critical missing count, constraint coverage, objective-term coverage, and structure.
+- The report explicitly states it is post-hoc diagnostics only and must not be used for formal selection.
+
+Local validation:
+
+- Focused tests passed with `54 passed`.
+- Full suite passed with `172 passed, 52 warnings`.
+- Demo smoke run `runs/debug_consensus_safe_demo15` confirmed the method appears in main results, diagnostics, paper metrics, and leakage audit.
+- In the demo smoke run, `ConsensusSafe` tied `ReplenishVerifier-Full` and `Best-of-K`; this is only code-path validation, not real Qwen evidence.
+
+Real k=8/100 status:
+
+- This checkout does not contain `data/generated/test_100_v6.jsonl` or `data/candidates/qwen3_8b_k8_100_v6_typeaware.jsonl`.
+- The exact requested run command failed locally with `ValueError: No benchmark rows found: data/generated/test_100_v6.jsonl`.
+- No fake real-result directory or fake paper table was generated.
+- The real rerun must be executed in the environment where those files exist.
+
+No candidates were regenerated and `replenishverifier/llm/run_generation.py` was not modified.
+
 `evaluate_candidate()` in `replenishverifier/experiments/methods.py` calls `execute_generated_code()`; it does not have a separate execution path. The execution bug was inside `replenishverifier/solver/code_executor.py`.
 
 Root cause:

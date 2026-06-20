@@ -842,3 +842,140 @@ The user reported that execution is now healthy (`code_execution_time` normal, `
 ### Notes
 
 No git commit or push was performed for this LP pipeline fix yet.
+
+## 2026-06-20 — ConsensusSafe selector implementation
+
+### User request
+
+The user reported that the k=8 / 100-problem Qwen3-8B experiment now executes normally and asked to improve selection so a new or tuned `ReplenishVerifier-ConsensusSafe` method gets as close as possible to or exceeds Best-of-K without using any reference/oracle information. Constraints: do not regenerate candidates, do not edit `run_generation.py`, preserve formal no-reference selection, run tests, rerun `run_all_methods`/diagnostics/leakage audit on the given experiment if inputs are available, and output counterfactual diagnostics if ConsensusSafe does not beat Best-of-K.
+
+### Actions completed
+
+1. Restored planning context and inspected current selection code in `replenishverifier/experiments/methods.py`.
+2. Checked local availability of the requested real inputs:
+   - `data/generated/test_100_v6.jsonl`
+   - `data/candidates/qwen3_8b_k8_100_v6_typeaware.jsonl`
+3. Confirmed those real inputs are absent in this checkout.
+4. Saved the implementation plan:
+   - `docs/superpowers/plans/2026-06-20-consensus-safe-selector.md`
+5. Added RED tests for:
+   - `ReplenishVerifier-ConsensusSafe` being in `MAIN_METHODS` and `METHODS`;
+   - consensus preference when LP/safety signals are healthy;
+   - demotion of close-consensus candidates with critical missing structures;
+   - components excluding reference/oracle fields;
+   - leakage audit coverage;
+   - default paper-metric method coverage;
+   - dedicated ConsensusSafe-vs-Best-of-K counterfactual diagnostics.
+6. Implemented `ReplenishVerifier-ConsensusSafe`:
+   - registered it in `MAIN_METHODS` after `ReplenishVerifier-Full` and before TypeAware ablations;
+   - added `consensus_safe_selection_components()` and `consensus_safe_selection_score()`;
+   - wired `_method_raw_score`, `_selection_tie_break_key_for_method`, `_annotate_selected_score`, and selection policy text;
+   - added it to `STRUCTURE_AWARE_METHODS` so critical-structure safety remains active;
+   - preserved `base_replenishverifier_score` before overwriting `raw_inference_score` during annotation.
+7. Tuned ConsensusSafe from consensus-dominant to Full-safe:
+   - dominant component is the original ReplenishVerifier-Full raw score;
+   - consensus is a bonus/reranker;
+   - LP health, structure, constraint coverage, objective-term coverage, type-aware hard gates, static/code validity, repair feedback count, and runtime are safety/tie-break signals.
+8. Added leakage audit coverage in `replenishverifier/experiments/audit_leakage.py`.
+9. Added `ReplenishVerifier-ConsensusSafe` to default paper methods in `paper_metrics.py`.
+10. Added `consensus_safe_counterfactual.csv/md` output in `diagnose_selection_metrics.py`.
+11. Ran a local smoke experiment using demo candidates only:
+    - `runs/debug_consensus_safe_demo15`
+    - Generated diagnostics under `runs/debug_consensus_safe_demo15/diagnostics`
+    - Generated paper metrics under `runs/debug_consensus_safe_demo15/paper_metrics`
+    - Ran leakage audit with `--write_report`.
+
+### Real k=8/100 rerun status
+
+Attempted the requested real command locally:
+
+```bash
+python -m replenishverifier.experiments.run_all_methods \
+  --benchmark data/generated/test_100_v6.jsonl \
+  --candidates data/candidates/qwen3_8b_k8_100_v6_typeaware.jsonl \
+  --out_dir runs/qwen3_8b_k8_100_v6_typeaware_consensusrerank \
+  --k_values 1,2,4,8 \
+  --timeout 30 \
+  --no_demo_if_empty
+```
+
+Result:
+
+```text
+ValueError: No benchmark rows found: data/generated/test_100_v6.jsonl
+```
+
+Therefore the real k=8/100 rerun was not completed in this checkout. No fake real results were generated.
+
+### Verification
+
+- RED ConsensusSafe tests initially failed because the method was unknown/unregistered.
+- RED leakage test initially failed because the method was missing from `FORMAL_METHODS`.
+- RED counterfactual diagnostics test initially failed because `consensus_safe_counterfactual.csv/md` did not exist.
+- Focused tests:
+  - Command: `python -m pytest tests/test_selection_gating.py tests/test_leakage_audit.py tests/test_run_all_methods_grouping.py tests/test_paper_metrics.py tests/test_diagnose_selection_metrics.py -q`
+  - Result: `54 passed in 1.32s`.
+- Full suite:
+  - Command: `python -m pytest -q`
+  - Result: `172 passed, 52 warnings in 5.06s`.
+- Smoke leakage audit:
+  - Result: `LEAKAGE AUDIT PASSED: no reference_objective usage detected in formal selection scores.`
+- Smoke sanity metrics from `runs/debug_consensus_safe_demo15`:
+  - `Best-of-K`: objective_accuracy `1.0`, structure_completeness `0.8238690476190477`, constraint_coverage `1.0`.
+  - `ReplenishVerifier-Full`: objective_accuracy `1.0`, structure_completeness `0.8238690476190477`, constraint_coverage `1.0`.
+  - `ReplenishVerifier-ConsensusSafe`: objective_accuracy `1.0`, structure_completeness `0.8238690476190477`, constraint_coverage `1.0`.
+  - `ReplenishVerifier-TypeAware-Consensus`: objective_accuracy `0.4`, structure_completeness `0.6730753968253969`, constraint_coverage `0.77`.
+  - This is demo smoke only, not real Qwen evidence.
+
+### Rerun commands for the environment containing real inputs
+
+```bash
+python -m replenishverifier.experiments.run_all_methods \
+  --benchmark data/generated/test_100_v6.jsonl \
+  --candidates data/candidates/qwen3_8b_k8_100_v6_typeaware.jsonl \
+  --out_dir runs/qwen3_8b_k8_100_v6_typeaware_consensusrerank \
+  --k_values 1,2,4,8 \
+  --timeout 30 \
+  --no_demo_if_empty
+
+python -m replenishverifier.experiments.diagnose_selection_metrics \
+  --exp_dir runs/qwen3_8b_k8_100_v6_typeaware_consensusrerank \
+  --out_dir runs/qwen3_8b_k8_100_v6_typeaware_consensusrerank/diagnostics
+
+python -m replenishverifier.experiments.build_paper_metrics \
+  --exp_dir runs/qwen3_8b_k8_100_v6_typeaware_consensusrerank \
+  --out_dir docs/experiment_results/qwen3_8b_k8_100_v6_typeaware_consensusrerank_compare \
+  --k_values 1,2,4,8 \
+  --bootstrap_samples 1000 \
+  --seed 42
+
+python -m replenishverifier.experiments.audit_leakage \
+  --exp_dir runs/qwen3_8b_k8_100_v6_typeaware_consensusrerank \
+  --write_report
+```
+
+If ConsensusSafe does not exceed Best-of-K on the real run, inspect:
+
+- `runs/qwen3_8b_k8_100_v6_typeaware_consensusrerank/diagnostics/consensus_safe_counterfactual.csv`
+- `runs/qwen3_8b_k8_100_v6_typeaware_consensusrerank/diagnostics/consensus_safe_counterfactual.md`
+- `runs/qwen3_8b_k8_100_v6_typeaware_consensusrerank/diagnostics/missed_oracle_summary.md`
+- `runs/qwen3_8b_k8_100_v6_typeaware_consensusrerank/diagnostics/paired_method_comparison.md`
+
+### Changed files
+
+- `replenishverifier/experiments/methods.py`
+- `replenishverifier/experiments/audit_leakage.py`
+- `replenishverifier/experiments/paper_metrics.py`
+- `replenishverifier/experiments/diagnose_selection_metrics.py`
+- `tests/test_selection_gating.py`
+- `tests/test_leakage_audit.py`
+- `tests/test_paper_metrics.py`
+- `tests/test_diagnose_selection_metrics.py`
+- `docs/superpowers/plans/2026-06-20-consensus-safe-selector.md`
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+### Notes
+
+No candidates were regenerated. `replenishverifier/llm/run_generation.py` was not modified. No git commit or push was performed yet for this ConsensusSafe work.

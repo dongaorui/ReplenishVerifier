@@ -318,6 +318,67 @@ def _write_avoidable_error_markdown(path, rows):
     Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def _selection_components(row):
+    return row.get("selection_components") or {}
+
+
+def _component(row, key):
+    return _selection_components(row).get(key)
+
+
+def compute_consensus_safe_counterfactual(main_rows):
+    """Post-hoc Best-of-K vs ConsensusSafe diagnostic rows.
+
+    This explains where ConsensusSafe differs from Best-of-K using selected-row
+    evaluation labels only in the diagnostic output. It is not a selection input.
+    """
+    selected = _selected_by_method_problem(main_rows)
+    best_rows = selected.get("Best-of-K", {})
+    safe_rows = selected.get("ReplenishVerifier-ConsensusSafe", {})
+    result = []
+    for pid in sorted(set(best_rows) & set(safe_rows)):
+        best = best_rows[pid]
+        safe = safe_rows[pid]
+        if best.get("candidate_id") == safe.get("candidate_id"):
+            continue
+        safe_correct = 1.0 if _local_objective_correct(safe) else 0.0
+        best_correct = 1.0 if _local_objective_correct(best) else 0.0
+        result.append({
+            "problem_id": pid,
+            "consensus_safe_candidate_id": safe.get("candidate_id"),
+            "best_of_k_candidate_id": best.get("candidate_id"),
+            "consensus_safe_objective_correct_posthoc": safe_correct,
+            "best_of_k_objective_correct_posthoc": best_correct,
+            "objective_delta_vs_best_of_k": safe_correct - best_correct,
+            "consensus_safe_consensus": _component(safe, "consensus_score"),
+            "best_of_k_consensus": _component(best, "consensus_score"),
+            "consensus_safe_lp_health": _component(safe, "lp_health_score"),
+            "best_of_k_lp_health": _component(best, "lp_health_score"),
+            "consensus_safe_critical_missing": _component(safe, "critical_missing_count"),
+            "best_of_k_critical_missing": _component(best, "critical_missing_count"),
+            "consensus_safe_constraint_coverage": _component(safe, "constraint_coverage"),
+            "best_of_k_constraint_coverage": _component(best, "constraint_coverage"),
+            "consensus_safe_objective_term_coverage": _component(safe, "objective_term_coverage"),
+            "best_of_k_objective_term_coverage": _component(best, "objective_term_coverage"),
+            "consensus_safe_structure": _component(safe, "structure_completeness"),
+            "best_of_k_structure": _component(best, "structure_completeness"),
+            "diagnostic_note": "post-hoc diagnostics only; non-reference signal columns explain the selected candidate difference",
+        })
+    return result
+
+
+def _write_consensus_safe_counterfactual_markdown(path, rows):
+    header = "This is post-hoc diagnostics only and must not be used for formal selection."
+    if not rows:
+        Path(path).write_text(f"# ConsensusSafe Counterfactual Diagnostics\n\n{header}\n\nNo differing ConsensusSafe / Best-of-K selections.\n", encoding="utf-8")
+        return
+    keys = list(rows[0].keys())
+    lines = ["# ConsensusSafe Counterfactual Diagnostics", "", header, "", "| " + " | ".join(keys) + " |", "| " + " | ".join(["---"] * len(keys)) + " |"]
+    for row in rows:
+        lines.append("| " + " | ".join(str(row.get(key)) for key in keys) + " |")
+    Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def diagnose_selection_metrics(exp_dir, candidates_path=None, benchmark_path=None, out_dir=None):
     exp_dir = Path(exp_dir)
     out_dir = Path(out_dir) if out_dir else exp_dir / "selection_metric_diagnostics"
@@ -340,6 +401,7 @@ def diagnose_selection_metrics(exp_dir, candidates_path=None, benchmark_path=Non
     missed_oracle_summary = compute_missed_oracle_summary(main_rows, candidate_rows) if candidate_rows else []
     paired_method_comparison = compute_paired_method_comparison(main_rows)
     avoidable_error_summary = compute_avoidable_error_summary(main_rows, candidate_rows) if candidate_rows else []
+    consensus_safe_counterfactual = compute_consensus_safe_counterfactual(main_rows)
     method_redundancy_report = build_method_redundancy_report(recomputed_metrics, diagnostics["same_selection_rate"])
     metric_saturation_report = build_metric_saturation_report(recomputed_metrics, diagnostics["same_selection_rate"])
 
@@ -359,6 +421,8 @@ def diagnose_selection_metrics(exp_dir, candidates_path=None, benchmark_path=Non
     write_markdown(out_dir / "paired_method_comparison.md", paired_method_comparison, "Paired Method Comparison")
     write_csv(out_dir / "avoidable_error_summary.csv", avoidable_error_summary)
     _write_avoidable_error_markdown(out_dir / "avoidable_error_summary.md", avoidable_error_summary)
+    write_csv(out_dir / "consensus_safe_counterfactual.csv", consensus_safe_counterfactual)
+    _write_consensus_safe_counterfactual_markdown(out_dir / "consensus_safe_counterfactual.md", consensus_safe_counterfactual)
     (out_dir / "method_redundancy_report.md").write_text(method_redundancy_report, encoding="utf-8")
     (out_dir / "metric_saturation_report.md").write_text(metric_saturation_report, encoding="utf-8")
 
@@ -396,6 +460,7 @@ def diagnose_selection_metrics(exp_dir, candidates_path=None, benchmark_path=Non
         "missed_oracle_summary": missed_oracle_summary,
         "paired_method_comparison": paired_method_comparison,
         "avoidable_error_summary": avoidable_error_summary,
+        "consensus_safe_counterfactual": consensus_safe_counterfactual,
         "summary": summary,
     }
 
