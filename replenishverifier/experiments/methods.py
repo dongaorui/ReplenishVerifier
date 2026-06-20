@@ -63,8 +63,8 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
     generated_code = candidate.get("generated_code", "")
     static_validation = compute_static_validation(generated_code, problem_type=reference.get("problem_type"))
     parsed = None
-    lp_parse_time = None
-    structure_check_time = None
+    lp_parse_time = 0.0
+    structure_check_time = 0.0
 
     if force_skip_execution:
         execution = {
@@ -72,9 +72,9 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
             "status": "NotRun",
             "objective": None,
             "lp_path": None,
-            "code_execution_time": None,
-            "solver_lp_export_time": None,
-            "solver_time": None,
+            "code_execution_time": 0.0,
+            "solver_lp_export_time": 0.0,
+            "solver_time": 0.0,
             "error": "Execution skipped by method.",
         }
         structure_dict = None
@@ -124,11 +124,11 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
         generated_code=generated_code,
     )
     runtime_fields = {
-        "code_execution_time": execution.get("code_execution_time"),
-        "solver_lp_export_time": execution.get("solver_lp_export_time"),
-        "solver_time": execution.get("solver_time"),
-        "lp_parse_time": None if lp_parse_time is None else float(lp_parse_time),
-        "structure_check_time": None if structure_check_time is None else float(structure_check_time),
+        "code_execution_time": float(execution.get("code_execution_time") or 0.0),
+        "solver_lp_export_time": float(execution.get("solver_lp_export_time") or 0.0),
+        "solver_time": float(execution.get("solver_time") or 0.0),
+        "lp_parse_time": float(lp_parse_time or 0.0),
+        "structure_check_time": float(structure_check_time or 0.0),
         "total_candidate_evaluation_time": float(total_runtime),
     }
     base = {
