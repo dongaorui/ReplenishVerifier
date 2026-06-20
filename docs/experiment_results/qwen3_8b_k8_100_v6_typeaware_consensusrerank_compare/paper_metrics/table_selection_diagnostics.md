@@ -2,11 +2,11 @@
 
 | method | n | k0 | k1 | k2 | k3 | k4 | k5 | k6 | k7 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Best-of-K | 100 | 24 | 5 | 13 | 9 | 14 | 10 | 14 | 11 |
-| Consensus only | 100 | 11 | 8 | 12 | 9 | 14 | 14 | 16 | 16 |
+| Best-of-K | 100 | 100 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| Consensus only | 100 | 13 | 14 | 18 | 11 | 8 | 11 | 13 | 12 |
 | Direct | 100 | 100 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| ReplenishVerifier-Full | 100 | 80 | 8 | 5 | 4 | 0 | 0 | 2 | 1 |
-| ReplenishVerifier-TypeAware | 100 | 10 | 8 | 14 | 10 | 15 | 12 | 18 | 13 |
-| ReplenishVerifier-TypeAware-Consensus | 100 | 10 | 8 | 14 | 10 | 15 | 12 | 18 | 13 |
-| Solver only | 100 | 12 | 9 | 13 | 9 | 15 | 12 | 16 | 14 |
-| Structure only | 100 | 81 | 7 | 5 | 4 | 0 | 0 | 2 | 1 |
+| ReplenishVerifier-Full | 100 | 99 | 1 | 0 | 0 | 0 | 0 | 0 | 0 |
+| ReplenishVerifier-TypeAware | 100 | 13 | 13 | 18 | 11 | 8 | 12 | 13 | 12 |
+| ReplenishVerifier-TypeAware-Consensus | 100 | 13 | 13 | 18 | 11 | 8 | 12 | 13 | 12 |
+| Solver only | 100 | 13 | 13 | 19 | 12 | 8 | 11 | 12 | 12 |
+| Structure only | 100 | 100 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
