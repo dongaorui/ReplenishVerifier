@@ -74,8 +74,8 @@ def load_model_and_tokenizer(model_name_or_path, trust_remote_code=True, dtype="
     return model, tokenizer
 
 
-def render_prompt(tokenizer, sample, use_chat_template=True, prompt_type="hidden_verifier"):
-    messages = build_chat_messages(sample, prompt_type=prompt_type)
+def render_prompt(tokenizer, sample, use_chat_template=True, prompt_type="hidden_verifier", candidate_index=None, k=None):
+    messages = build_chat_messages(sample, prompt_type=prompt_type, candidate_index=candidate_index, k=k)
     if use_chat_template and hasattr(tokenizer, "apply_chat_template"):
         try:
             return tokenizer.apply_chat_template(
@@ -91,7 +91,7 @@ def render_prompt(tokenizer, sample, use_chat_template=True, prompt_type="hidden
                 LOGGER.warning("Tokenizer chat template failed; falling back to plain prompt.")
         except Exception:
             LOGGER.warning("Tokenizer chat template failed; falling back to plain prompt.")
-    return build_prompt(sample, prompt_type=prompt_type)
+    return build_prompt(sample, prompt_type=prompt_type, candidate_index=candidate_index, k=k)
 
 
 def generate_one(model, tokenizer, prompt, max_new_tokens=2048, temperature=0.2, top_p=0.95):
@@ -181,13 +181,28 @@ def run_generation(
         "model_label": model_label,
     }
     for sample in tqdm(benchmark, desc="generate candidates"):
-        prompt = render_prompt(tokenizer, sample, use_chat_template=use_chat_template, prompt_type=prompt_type)
         for idx in range(k):
+            prompt = render_prompt(
+                tokenizer,
+                sample,
+                use_chat_template=use_chat_template,
+                prompt_type=prompt_type,
+                candidate_index=idx,
+                k=k,
+            )
             candidate_prefix = str(model_label) if model_label else Path(str(model_name_or_path)).name
             candidate_id = f"{candidate_prefix}_k{idx}"
+            row_generation_config = dict(generation_config)
+            row_generation_config.update({
+                "candidate_index": idx,
+                "k": k,
+                "candidate_diversity_prompting": bool(k and k > 1),
+            })
             row = {
                 "problem_id": sample["id"],
                 "candidate_id": candidate_id,
+                "candidate_index": idx,
+                "k": k,
                 "method": "llm_generation",
                 "model": str(model_name_or_path),
                 "model_label": model_label,
@@ -195,7 +210,7 @@ def run_generation(
                 "prompt_type": prompt_type,
                 "prompt": prompt,
                 "seed": seed,
-                "generation_config": dict(generation_config),
+                "generation_config": row_generation_config,
                 "reproducibility_note": REPRODUCIBILITY_NOTE,
                 "raw_generated_text": "",
                 "generated_text": "",

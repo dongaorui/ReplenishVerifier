@@ -85,3 +85,42 @@ def test_generation_saves_final_candidate_when_all_attempts_invalid(monkeypatch,
     assert row["attempts"][-1]["accepted"] is False
     assert row["code_output_format_valid"] is False
     assert row["generated_code"] == ""
+
+
+def test_generation_uses_candidate_specific_prompts_for_fixed_k_diversity(monkeypatch, tmp_path):
+    from replenishverifier.llm import run_generation as module
+
+    benchmark_path = tmp_path / "benchmark.jsonl"
+    out_path = tmp_path / "candidates.jsonl"
+    write_jsonl(
+        benchmark_path,
+        [{"id": "p0", "problem_type": "fixed_order_cost_big_m", "natural_language": "x", "parameters": {"periods": 2}}],
+    )
+
+    prompts_seen = []
+    monkeypatch.setattr(module, "load_model_and_tokenizer", lambda *args, **kwargs: (FakeModel(), FakeTokenizer()))
+
+    def fake_generate_one(model, tokenizer, prompt, **kwargs):
+        prompts_seen.append(prompt)
+        return _valid_code()
+
+    monkeypatch.setattr(module, "generate_one", fake_generate_one)
+
+    rows = module.run_generation(
+        benchmark_path=benchmark_path,
+        out_path=out_path,
+        model_name_or_path="fake-model",
+        k=3,
+        prompt_type="type_aware_hidden_verifier",
+        use_chat_template=False,
+    )
+
+    assert len(rows) == 3
+    assert len(prompts_seen) == 3
+    assert len({row["prompt"] for row in rows}) == 3
+    assert "candidate 1 of 3" in rows[0]["prompt"].lower()
+    assert "candidate 2 of 3" in rows[1]["prompt"].lower()
+    assert "candidate 3 of 3" in rows[2]["prompt"].lower()
+    assert rows[0]["generation_config"]["candidate_diversity_prompting"] is True
+    assert rows[2]["candidate_index"] == 2
+    assert rows[2]["k"] == 3

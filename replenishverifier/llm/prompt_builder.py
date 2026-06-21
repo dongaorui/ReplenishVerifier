@@ -65,6 +65,47 @@ Replace the template placeholders with complete executable PuLP code for the giv
 """
 
 
+CANDIDATE_QUALITY_SELF_CHECK = """Candidate-quality self-check before final answer:
+- Silently verify that your model includes every decision variable family implied by the problem statement and JSON parameters.
+- Silently verify that the objective contains all cost and penalty terms described by the problem.
+- Silently verify that each period/item balance, capacity, setup/linking, shortage, and nonnegativity requirement implied by the problem is modeled when applicable.
+- Silently verify that every PuLP constraint has an explicit descriptive name.
+- Do not reveal this checklist or any reasoning; output only the final Python source code.
+"""
+
+
+_CANDIDATE_DIVERSITY_STYLES = [
+    "Use clear tuple-indexed PuLP dictionaries for multi-index variables when the problem has item or period dimensions.",
+    "Use nested loops with explicit per-period or per-item constraint names; keep algebra simple and readable.",
+    "Write the objective as a single pulp.lpSum expression after defining all decision variables.",
+    "Define objective-term helper lists before adding the objective, then add named constraints in a separate section.",
+    "Use concise variable names but descriptive constraint names that expose the mathematical role.",
+    "Use descriptive variable names and compact comprehension-based constraints where this stays readable.",
+    "Emphasize boundary conditions such as initial inventory and first-period balance before writing later-period constraints.",
+    "Emphasize linking/setup/capacity constraints before returning the model, while preserving the same mathematical problem.",
+]
+
+
+def candidate_diversity_instruction(candidate_index=None, k=None):
+    if candidate_index is None or k is None:
+        return ""
+    try:
+        idx = int(candidate_index)
+        total = int(k)
+    except (TypeError, ValueError):
+        return ""
+    if total <= 1:
+        return ""
+    style = _CANDIDATE_DIVERSITY_STYLES[idx % len(_CANDIDATE_DIVERSITY_STYLES)]
+    return f"""Candidate diversity instruction:
+You are generating candidate {idx + 1} of {total}. Construct the model independently, using this style preference while keeping the same mathematical model and runner interface:
+- {style}
+Do not simplify, omit, or change the mathematical requirements just to be different.
+"""
+
+
+
+
 def _validate_prompt_type(prompt_type):
     if prompt_type not in PROMPT_TYPES:
         raise ValueError(f"prompt_type must be one of {sorted(PROMPT_TYPES)}, got {prompt_type!r}")
@@ -141,9 +182,10 @@ def type_aware_generation_checklist(problem_type):
 
 
 
-def build_prompt(sample, prompt_type="hidden_verifier"):
+def build_prompt(sample, prompt_type="hidden_verifier", candidate_index=None, k=None):
     _validate_prompt_type(prompt_type)
     params = _parameters_block(sample)
+    diversity = candidate_diversity_instruction(candidate_index=candidate_index, k=k)
 
     if prompt_type == "structured":
         expected = json.dumps(sample.get("expected_structures", {}), ensure_ascii=False, indent=2)
@@ -155,6 +197,8 @@ Expected high-level modeling structures as JSON:
 {expected}
 
 {CONSTRAINT_NAMING_REGULATION}
+{CANDIDATE_QUALITY_SELF_CHECK}
+{diversity}
 {PULP_INTERFACE_REQUIREMENTS}'''
 
     if prompt_type == "plain":
@@ -162,6 +206,8 @@ Expected high-level modeling structures as JSON:
 
 {_plain_problem_header(sample)}
 {params}
+{CANDIDATE_QUALITY_SELF_CHECK}
+{diversity}
 {PULP_INTERFACE_REQUIREMENTS}'''
 
     if prompt_type == "type_aware_hidden_verifier":
@@ -171,6 +217,8 @@ Expected high-level modeling structures as JSON:
 {params}
 {type_aware_generation_checklist(sample.get('problem_type'))}
 {GENERIC_CONSTRAINT_NAMING_GUIDANCE}
+{CANDIDATE_QUALITY_SELF_CHECK}
+{diversity}
 {PULP_INTERFACE_REQUIREMENTS}'''
 
     return f'''Given the following optimization problem, write one complete Python program using PuLP.
@@ -178,13 +226,15 @@ Expected high-level modeling structures as JSON:
 {_plain_problem_header(sample)}
 {params}
 {GENERIC_CONSTRAINT_NAMING_GUIDANCE}
+{CANDIDATE_QUALITY_SELF_CHECK}
+{diversity}
 {PULP_INTERFACE_REQUIREMENTS}'''
 
 
-def build_chat_messages(sample, prompt_type="hidden_verifier"):
+def build_chat_messages(sample, prompt_type="hidden_verifier", candidate_index=None, k=None):
     return [
         {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": build_prompt(sample, prompt_type=prompt_type)},
+        {"role": "user", "content": build_prompt(sample, prompt_type=prompt_type, candidate_index=candidate_index, k=k)},
     ]
 
 

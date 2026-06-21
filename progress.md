@@ -253,6 +253,42 @@ User asked to stop the aggressive FullV2 ranker and convert `ReplenishVerifier-F
 - `tests/test_fullv2_does_not_change_baselines.py` (new)
 - `progress.md`
 
+## 2026-06-21 — k=8 candidate-pool quality prompt improvements for 100-problem run
+
+### User request
+
+The user asked to work only on the 100-problem version, not 200 problems, and to improve candidate-pool quality under fixed k=8 rather than continue selector changes. They asked not to run the experiment locally because it will be run on Xshell, and not to push automatically.
+
+### Actions completed
+
+1. Kept selector code untouched for this request.
+2. Enhanced generation prompts in `replenishverifier/llm/prompt_builder.py`:
+   - Added a reference-free candidate-quality self-check block.
+   - Added candidate-specific diversity instructions for fixed-k generation.
+   - Applied the quality self-check to `structured`, `plain`, `hidden_verifier`, and `type_aware_hidden_verifier` prompt modes.
+3. Updated generation flow in `replenishverifier/llm/run_generation.py`:
+   - `render_prompt()` now accepts `candidate_index` and `k`.
+   - `run_generation()` now renders a fresh candidate-specific prompt for each k candidate.
+   - Each output row now records `candidate_index`, `k`, and `generation_config.candidate_diversity_prompting`.
+4. Added/updated TDD tests:
+   - Prompt includes self-check but no reference/oracle fields.
+   - Prompt supports candidate-specific diversity instructions for k=8.
+   - `render_prompt()` passes candidate index/k through chat template rendering.
+   - `run_generation()` stores distinct candidate-specific prompts and k metadata.
+
+### Verification
+
+- New tests initially failed before implementation.
+- Focused tests: `python -m pytest tests/test_prompt_modes.py tests/test_run_generation_retry.py tests/test_run_generation_output_format.py tests/test_run_generation_model_label.py -q` -> `22 passed in 1.82s`.
+- Full suite: `python -m pytest -q` -> `208 passed, 52 warnings in 5.42s`.
+
+### Notes
+
+- No candidates were regenerated.
+- No 200-problem work was done.
+- No selector logic was changed.
+- No push or commit was performed.
+
 ### User request
 
 The user asked to continue the pre-experiment code enhancement and documentation synchronization, with the same constraints: no Explore/multi-agent work, no git worktree, no real LLM generation, no large benchmark, no fake result numbers, and no training claims.

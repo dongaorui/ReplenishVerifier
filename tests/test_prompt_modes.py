@@ -104,6 +104,43 @@ def test_render_prompt_accepts_type_aware_hidden_verifier_with_chat_template():
     assert "build_model()" in rendered
 
 
+def test_type_aware_prompt_includes_oracle_pool_quality_self_check_without_reference_fields():
+    prompt = build_prompt(_sample(), prompt_type="type_aware_hidden_verifier")
+
+    assert "Candidate-quality self-check before final answer" in prompt
+    assert "Silently verify that your model includes" in prompt
+    assert "Do not reveal this checklist" in prompt
+    assert "reference_objective" not in prompt
+    assert "reference_answer" not in prompt
+    assert "reference_lp" not in prompt
+    assert "objective_correct" not in prompt
+    assert "oracle" not in prompt.lower()
+
+
+def test_prompt_can_include_candidate_diversity_instruction_for_fixed_k_generation():
+    prompt = build_prompt(_sample(), prompt_type="type_aware_hidden_verifier", candidate_index=3, k=8)
+
+    assert "Candidate diversity instruction" in prompt
+    assert "candidate 4 of 8" in prompt.lower()
+    assert "construct the model independently" in prompt.lower()
+    assert "same mathematical model" in prompt.lower()
+    assert "reference_objective" not in prompt
+
+
+def test_render_prompt_passes_candidate_index_and_k_through_chat_template():
+    rendered = render_prompt(
+        DummyTokenizer(),
+        _sample(),
+        use_chat_template=True,
+        prompt_type="type_aware_hidden_verifier",
+        candidate_index=5,
+        k=8,
+    )
+
+    assert "Candidate diversity instruction" in rendered
+    assert "candidate 6 of 8" in rendered.lower()
+
+
 class ThinkingAwareTokenizer:
     def __init__(self):
         self.enable_thinking_seen = None
