@@ -140,6 +140,33 @@ Recommended next steps:
 - Should future planning use root files (`task_plan.md`, `findings.md`, `progress.md`) or isolated `.planning/<plan-id>/` directories?
 - Should the next session prioritize real experiments, paper writing, code cleanup/tests, or claim-risk audit?
 
+### Phase 13 — Non-reference repair policy wrapper
+
+**Status:** complete on 2026-06-21
+
+Actions:
+
+- Added `replenishverifier/llm/nonreference_repair_policy.py` as a wrapper/filtering layer around the existing `run_repair_generation()` engine.
+- Added `replenishverifier/llm/run_nonreference_repair_policy.py` CLI shim.
+- Preserved `run_repair_generation.py` core logic; no repair engine reimplementation.
+- The wrapper builds repair prompt rows only from non-reference candidate-quality signals, strips reference/oracle/evaluation fields, calls the existing repair engine, and merges repaired code back into original candidate slots.
+- Clean candidates remain unchanged; repaired candidates preserve original `problem_id`, `candidate_id`, `candidate_index`, and `k` alignment and are marked `requires_re_evaluation=True`.
+- Added/used `tests/test_nonreference_repair_policy.py` covering no reference leakage, clean candidates untouched, failed candidates repaired, output length preservation, id alignment preservation, and deterministic behavior with a mocked engine.
+
+Verification:
+
+- RED: `python -m pytest tests/test_nonreference_repair_policy.py -q` failed with missing module before implementation.
+- Target tests: `python -m pytest tests/test_nonreference_repair_policy.py -q` -> `4 passed in 0.53s`.
+- Focused repair suite: `python -m pytest tests/test_nonreference_repair_policy.py tests/test_repair_generation_dry_run.py tests/test_repair_prompt_fairness.py -q` -> `18 passed in 0.92s`.
+- Full suite: `python -m pytest -q` -> `217 passed, 52 warnings in 5.22s`.
+- Static grep: no literal `objective_correct` in `replenishverifier/llm/nonreference_repair_policy.py`.
+
+Notes:
+
+- No candidates were regenerated.
+- `replenishverifier/llm/run_generation.py` and `replenishverifier/llm/run_repair_generation.py` were not modified.
+- Real repaired candidates still require re-evaluation before any repair-performance claim.
+
 ### Phase 5 — TypeAware-Consensus and selection diagnostics
 
 **Status:** complete on 2026-06-19

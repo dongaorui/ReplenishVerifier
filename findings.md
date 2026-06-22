@@ -460,3 +460,25 @@ Remaining interpretation:
 - Structure/constraint evidence remains the safer signal in the observed pre-fix losses.
 - There is no direct evidence that type-aware penalty was too strong in those losses; critical missing counts and type-aware hard-gate scores were tied.
 - Remaining wrong selections are mostly candidate-pool-limited or non-reference indistinguishable; post-hoc correctness is diagnostic-only.
+
+## 2026-06-21 — Non-reference repair policy wrapper
+
+A new wrapper layer around the existing repair engine now exists in `replenishverifier/llm/nonreference_repair_policy.py`, with CLI entrypoint shim `replenishverifier/llm/run_nonreference_repair_policy.py`.
+
+Contract:
+
+- It does not modify `run_repair_generation.py` core logic.
+- It reads an original candidate/evaluation JSONL, builds repair prompt rows only for candidates that fail non-reference quality checks, calls the existing `run_repair_generation()` engine, then merges repaired code back into the original row slots.
+- Clean candidates are copied byte-for-byte as rows; repaired candidates keep the original `problem_id`, `candidate_id`, `candidate_index`, and `k` alignment.
+- Output length equals input length.
+- Repaired rows are marked `non_reference_policy_repaired=True`, `requires_re_evaluation=True`, `is_evaluated_repair_result=False`, and `uses_reference_objective_for_repair=False`.
+- The wrapper strips forbidden reference/oracle/evaluation fields such as reference objective, relative error, oracle fields, reference LP/answer, and objective-correctness-style keys before prompt construction and before emitting repaired rows.
+- It does not re-generate the original candidate pool; it only invokes repair for policy-selected failed/low-quality candidates.
+
+Verification:
+
+- RED before implementation: `python -m pytest tests/test_nonreference_repair_policy.py -q` failed with `ModuleNotFoundError` for the missing module.
+- After implementation: `python -m pytest tests/test_nonreference_repair_policy.py -q` -> `4 passed`.
+- Focused repair suite: `python -m pytest tests/test_nonreference_repair_policy.py tests/test_repair_generation_dry_run.py tests/test_repair_prompt_fairness.py -q` -> `18 passed`.
+- Full suite: `python -m pytest -q` -> `217 passed, 52 warnings in 5.22s`.
+- Static grep confirmed no literal `objective_correct` appears in the new wrapper module.

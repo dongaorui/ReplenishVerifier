@@ -1279,3 +1279,51 @@ Diagnostics:
 ### Notes
 
 No candidate generation was run. `replenishverifier/llm/run_generation.py` was not modified. Formal selection still avoids reference objective, objective correctness, oracle, reference LP, and reference answers. Post-hoc correctness was used only for diagnostics and explanation.
+
+## 2026-06-21 — Non-reference repair policy wrapper
+
+### User request
+
+The user asked not to reimplement the repair model, but to build a non-reference policy wrapper around the existing `replenishverifier/llm/run_repair_generation.py` engine. Constraints: do not modify repair engine core logic, do not introduce oracle/reference signals, do not use `objective_correct`, do not regenerate candidates, and only implement wrapper/filtering behavior.
+
+### Actions completed
+
+1. Restored planning context and ran the planning session catchup script.
+2. Inspected `run_repair_generation.py`, existing repair tests, and existing non-reference prompt builder code.
+3. Confirmed RED state for the pre-existing/new policy tests:
+   - `python -m pytest tests/test_nonreference_repair_policy.py -q` failed with `ModuleNotFoundError` because the wrapper module did not exist.
+4. Added `replenishverifier/llm/nonreference_repair_policy.py`:
+   - builds repair prompts from non-reference candidate-quality signals;
+   - strips reference/oracle/evaluation fields before prompt generation and repaired output emission;
+   - calls the existing `run_repair_generation()` repair engine by default;
+   - supports dependency injection via `repair_engine` for deterministic tests;
+   - merges repaired code back into the original candidate slot while preserving original ID alignment.
+5. Added `replenishverifier/llm/run_nonreference_repair_policy.py` as a CLI entrypoint shim.
+6. Kept `replenishverifier/llm/run_repair_generation.py` unchanged.
+7. Verified the wrapper does not contain the literal `objective_correct` string.
+
+### Verification
+
+- RED before implementation:
+  - `python -m pytest tests/test_nonreference_repair_policy.py -q` -> `4 failed` with `ModuleNotFoundError`.
+- Target tests after implementation:
+  - `python -m pytest tests/test_nonreference_repair_policy.py -q` -> `4 passed in 0.53s`.
+- Focused repair suite:
+  - `python -m pytest tests/test_nonreference_repair_policy.py tests/test_repair_generation_dry_run.py tests/test_repair_prompt_fairness.py -q` -> `18 passed in 0.92s`.
+- Full suite:
+  - `python -m pytest -q` -> `217 passed, 52 warnings in 5.22s`.
+- Static grep:
+  - `objective_correct` has no match in `replenishverifier/llm/nonreference_repair_policy.py`.
+
+### Changed files
+
+- `replenishverifier/llm/nonreference_repair_policy.py` (new)
+- `replenishverifier/llm/run_nonreference_repair_policy.py` (new)
+- `tests/test_nonreference_repair_policy.py`
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+### Notes
+
+No candidates were regenerated. `run_repair_generation.py` was not modified. The wrapper output preserves input length and original `problem_id` / `candidate_id` / `candidate_index` / `k` alignment; repaired rows are marked for re-evaluation before any repair-performance claim.
