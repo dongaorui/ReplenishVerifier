@@ -1,0 +1,67 @@
+{"method": "Best-of-K", "error_type": "execution_error", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "Best-of-K", "error_type": "missing_capacity_constraint", "reported": 4, "recomputed": 4, "delta": 0, "status": "OK"}
+{"method": "Best-of-K", "error_type": "missing_shortage_variable", "reported": 2, "recomputed": 2, "delta": 0, "status": "OK"}
+{"method": "Best-of-K", "error_type": "no_error_detected", "reported": 76, "recomputed": 78, "delta": 2, "status": "MISMATCH"}
+{"method": "Best-of-K", "error_type": "objective_mismatch_after_selection", "reported": 5, "recomputed": 3, "delta": -2, "status": "MISMATCH"}
+{"method": "Best-of-K", "error_type": "solver_not_optimal", "reported": 10, "recomputed": 10, "delta": 0, "status": "OK"}
+{"method": "Consensus only", "error_type": "execution_error", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "Consensus only", "error_type": "missing_capacity_constraint", "reported": 10, "recomputed": 10, "delta": 0, "status": "OK"}
+{"method": "Consensus only", "error_type": "missing_shortage_variable", "reported": 2, "recomputed": 2, "delta": 0, "status": "OK"}
+{"method": "Consensus only", "error_type": "no_error_detected", "reported": 71, "recomputed": 71, "delta": 0, "status": "OK"}
+{"method": "Consensus only", "error_type": "objective_mismatch_after_selection", "reported": 4, "recomputed": 4, "delta": 0, "status": "OK"}
+{"method": "Consensus only", "error_type": "solver_not_optimal", "reported": 10, "recomputed": 10, "delta": 0, "status": "OK"}
+{"method": "Direct", "error_type": "execution_error", "reported": 9, "recomputed": 9, "delta": 0, "status": "OK"}
+{"method": "Direct", "error_type": "missing_capacity_constraint", "reported": 9, "recomputed": 9, "delta": 0, "status": "OK"}
+{"method": "Direct", "error_type": "no_error_detected", "reported": 61, "recomputed": 61, "delta": 0, "status": "OK"}
+{"method": "Direct", "error_type": "objective_mismatch_after_selection", "reported": 8, "recomputed": 8, "delta": 0, "status": "OK"}
+{"method": "Direct", "error_type": "solver_not_optimal", "reported": 13, "recomputed": 13, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-ConsensusSafe", "error_type": "execution_error", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-ConsensusSafe", "error_type": "missing_capacity_constraint", "reported": 4, "recomputed": 4, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-ConsensusSafe", "error_type": "missing_shortage_variable", "reported": 2, "recomputed": 2, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-ConsensusSafe", "error_type": "no_error_detected", "reported": 78, "recomputed": 78, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-ConsensusSafe", "error_type": "objective_mismatch_after_selection", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-ConsensusSafe", "error_type": "solver_not_optimal", "reported": 10, "recomputed": 10, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-Full", "error_type": "execution_error", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-Full", "error_type": "missing_capacity_constraint", "reported": 4, "recomputed": 4, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-Full", "error_type": "missing_shortage_variable", "reported": 2, "recomputed": 2, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-Full", "error_type": "no_error_detected", "reported": 77, "recomputed": 78, "delta": 1, "status": "MISMATCH"}
+{"method": "ReplenishVerifier-Full", "error_type": "objective_mismatch_after_selection", "reported": 4, "recomputed": 3, "delta": -1, "status": "MISMATCH"}
+{"method": "ReplenishVerifier-Full", "error_type": "solver_not_optimal", "reported": 10, "recomputed": 10, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-FullV2", "error_type": "execution_error", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-FullV2", "error_type": "missing_capacity_constraint", "reported": 4, "recomputed": 4, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-FullV2", "error_type": "missing_shortage_variable", "reported": 2, "recomputed": 2, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-FullV2", "error_type": "no_error_detected", "reported": 77, "recomputed": 78, "delta": 1, "status": "MISMATCH"}
+{"method": "ReplenishVerifier-FullV2", "error_type": "objective_mismatch_after_selection", "reported": 4, "recomputed": 3, "delta": -1, "status": "MISMATCH"}
+{"method": "ReplenishVerifier-FullV2", "error_type": "solver_not_optimal", "reported": 10, "recomputed": 10, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-HybridSafe", "error_type": "execution_error", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-HybridSafe", "error_type": "missing_capacity_constraint", "reported": 4, "recomputed": 4, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-HybridSafe", "error_type": "missing_shortage_variable", "reported": 2, "recomputed": 2, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-HybridSafe", "error_type": "no_error_detected", "reported": 78, "recomputed": 78, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-HybridSafe", "error_type": "objective_mismatch_after_selection", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-HybridSafe", "error_type": "solver_not_optimal", "reported": 10, "recomputed": 10, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-TypeAware", "error_type": "execution_error", "reported": 7, "recomputed": 7, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-TypeAware", "error_type": "missing_capacity_constraint", "reported": 4, "recomputed": 4, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-TypeAware", "error_type": "missing_shortage_variable", "reported": 2, "recomputed": 2, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-TypeAware", "error_type": "no_error_detected", "reported": 78, "recomputed": 78, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-TypeAware", "error_type": "objective_mismatch_after_selection", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-TypeAware", "error_type": "solver_not_optimal", "reported": 6, "recomputed": 6, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-TypeAware-Consensus", "error_type": "execution_error", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-TypeAware-Consensus", "error_type": "missing_capacity_constraint", "reported": 4, "recomputed": 4, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-TypeAware-Consensus", "error_type": "missing_shortage_variable", "reported": 2, "recomputed": 2, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-TypeAware-Consensus", "error_type": "no_error_detected", "reported": 78, "recomputed": 78, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-TypeAware-Consensus", "error_type": "objective_mismatch_after_selection", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "ReplenishVerifier-TypeAware-Consensus", "error_type": "solver_not_optimal", "reported": 10, "recomputed": 10, "delta": 0, "status": "OK"}
+{"method": "Solver only", "error_type": "execution_error", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "Solver only", "error_type": "missing_big_m_constraint", "reported": null, "recomputed": 1, "delta": null, "status": "MISSING"}
+{"method": "Solver only", "error_type": "missing_capacity_constraint", "reported": 10, "recomputed": 10, "delta": 0, "status": "OK"}
+{"method": "Solver only", "error_type": "missing_shortage_variable", "reported": 2, "recomputed": 2, "delta": 0, "status": "OK"}
+{"method": "Solver only", "error_type": "no_error_detected", "reported": 71, "recomputed": 70, "delta": -1, "status": "MISMATCH"}
+{"method": "Solver only", "error_type": "objective_mismatch_after_selection", "reported": 4, "recomputed": 3, "delta": -1, "status": "MISMATCH"}
+{"method": "Solver only", "error_type": "other_missing_structure", "reported": null, "recomputed": 1, "delta": null, "status": "MISSING"}
+{"method": "Solver only", "error_type": "solver_not_optimal", "reported": 10, "recomputed": 10, "delta": 0, "status": "OK"}
+{"method": "Structure only", "error_type": "execution_error", "reported": 3, "recomputed": 3, "delta": 0, "status": "OK"}
+{"method": "Structure only", "error_type": "missing_capacity_constraint", "reported": 4, "recomputed": 4, "delta": 0, "status": "OK"}
+{"method": "Structure only", "error_type": "missing_shortage_variable", "reported": 2, "recomputed": 2, "delta": 0, "status": "OK"}
+{"method": "Structure only", "error_type": "no_error_detected", "reported": 77, "recomputed": 77, "delta": 0, "status": "OK"}
+{"method": "Structure only", "error_type": "objective_mismatch_after_selection", "reported": 4, "recomputed": 4, "delta": 0, "status": "OK"}
+{"method": "Structure only", "error_type": "solver_not_optimal", "reported": 10, "recomputed": 10, "delta": 0, "status": "OK"}
