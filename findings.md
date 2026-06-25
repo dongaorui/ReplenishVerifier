@@ -537,3 +537,22 @@ Implementation finding:
 - TAC `selection_components` now expose common no-reference features: `candidate_id`, `candidate_rank`, `problem_type`, `solver_ok`, `execution_success`, `finite_objective`, and `objective`.
 - New diagnostics `problem_type_pool_limit_diagnostics.csv/.md` report oracle@k, selector accuracy, gap to oracle, and a candidate-pool-limited flag by method/problem type. These diagnostics are post-hoc only and not used by selection.
 - Reselecting existing safe_tac_v2 evaluations into `runs/debug_safe_tac_v2_per_type_reselect` improved TAC objective_accuracy from `0.8400` to `0.8500` while preserving no-reference leakage audit success.
+
+## 2026-06-25 — Cross-pool conservative TAC hardening
+
+`ReplenishVerifier-TypeAware-Consensus` now has conservative no-reference recovery and explicit capacity evidence strength diagnostics.
+
+Key implementation findings:
+
+- `capacity_evidence_strength` distinguishes no evidence (`0`), keyword-only capacity/resource/storage/budget evidence (`1`), and explicit shared aggregation / structure-certificate capacity evidence (`2`).
+- TAC recovery is gated by hard-required schema only. It can fire only when the initial candidate misses the active hard profile schema and a solver-ok, finite-objective challenger completes that schema without dropping objective-term/constraint coverage, safe-consensus support, or hard-gate validity.
+- Hard profiles are enabled by explicit problem type, or by text trigger only when the problem type is unknown; this avoids capacity/fixed/shortage gates contaminating ordinary `single_item_multi_period` or `single_period_newsvendor` cases.
+- Selection components remain no-reference; recovery diagnostics record trigger/reason/candidate IDs but not objective correctness, reference objective, relative error, oracle rank, reference LP, or reference answer.
+
+Cross-pool validation on existing candidate evaluations:
+
+- V8 reselect output: `runs/tac_crosspool_v8_20260625`, TAC objective_accuracy `0.8500`.
+- V9 reselect output: `runs/tac_crosspool_v9_20260625`, TAC objective_accuracy `0.8200`.
+- Both leakage audits passed.
+- The change is stability-preserving on these pools: average TAC across V8/V9 is `0.8350`, minimum is `0.8200`; V8 remains at `0.8500` and V9 remains at the provided regenerated baseline `0.8200`.
+- Capacity remains pool/selector-limited by available candidates and no-reference signals; no problem-id or candidate-file-specific rule was added.

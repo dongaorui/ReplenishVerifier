@@ -609,11 +609,19 @@ def type_aware_consensus_selection_score(row):
     )
 
 
-def _tac_profile_name(problem_type):
+def _tac_profile_name(problem_type, row=None):
     if problem_type in {"multi_item_capacity", "single_item_multi_period_shortage", "fixed_order_cost_big_m"}:
         return problem_type
     if problem_type == "single_period_newsvendor":
         return "single_period_newsvendor"
+    if not problem_type and row is not None:
+        text = _problem_text(row)
+        if TEXT_TRIGGER_PATTERNS["fixed_order_cost"].search(text) or TEXT_TRIGGER_PATTERNS["big_m_constraint"].search(text):
+            return "fixed_order_cost_big_m"
+        if TEXT_TRIGGER_PATTERNS["shortage_variable"].search(text):
+            return "single_item_multi_period_shortage"
+        if TEXT_TRIGGER_PATTERNS["capacity_constraint"].search(text):
+            return "multi_item_capacity"
     return "single_item_multi_period"
 
 
@@ -640,14 +648,135 @@ def _tac_common_no_reference_features(row, problem_type):
     }
 
 
+def capacity_evidence_strength(row):
+    """Return 0/1/2 capacity evidence using only candidate-observable LP/code/text signals."""
+    problem_text = _problem_text(row)
+    generated_code = str(row.get("generated_code") or row.get("code") or "")
+    structure = row.get("structure_verification") or {}
+    certificates = structure.get("certificates") or []
+    has_keyword = bool(TEXT_TRIGGER_PATTERNS["capacity_constraint"].search(problem_text) or TEXT_TRIGGER_PATTERNS["capacity_constraint"].search(generated_code))
+    if _rule_score(row, "capacity_constraint") > 0.0:
+        return 2
+    for cert in certificates:
+        if cert.get("rule_name") == "capacity_constraint" and float(cert.get("score", 0.0) or 0.0) > 0.0:
+            return 2
+    lp_stats = row.get("lp_stats") or {}
+    capacity_like_constraints = int(lp_stats.get("capacity_like_constraints") or lp_stats.get("resource_constraint_count") or 0)
+    if capacity_like_constraints > 0:
+        return 2
+    shared_patterns = [
+        r"lpSum\s*\([^\)]*for\s+[^\)]*(?:item|items|i)\b[^\)]*\)\s*<=\s*[^\n]*(?:capacity|storage|warehouse|budget|resource)",
+        r"sum\s*\([^\)]*for\s+[^\)]*(?:item|items|i)\b[^\)]*\)\s*<=\s*[^\n]*(?:capacity|storage|warehouse|budget|resource)",
+        r"(?:capacity|storage|warehouse|budget|resource)[^\n]*>=\s*(?:lpSum|sum)\s*\([^\)]*for\s+[^\)]*(?:item|items|i)\b",
+    ]
+    if any(re.search(pattern, generated_code, flags=re.IGNORECASE | re.DOTALL) for pattern in shared_patterns):
+        return 2
+    if "capacity_constraint" in _required_missing_for_row(row):
+        return 1 if has_keyword else 0
+    return 1 if has_keyword else 0
+
+
 def _with_tac_profile_components(row, problem_type):
     components = type_aware_consensus_selection_components(row)
     profile_problem_type = problem_type or _row_problem_type(row)
     components.update(_tac_common_no_reference_features(row, profile_problem_type))
-    profile = _tac_profile_name(profile_problem_type)
+    profile = _tac_profile_name(profile_problem_type, row=row)
     components["tac_priority_profile"] = profile
     components["profile_primary_signal"] = _tac_profile_primary_signal(profile)
+    components["capacity_evidence_strength"] = float(capacity_evidence_strength(row))
     return components
+
+
+def _tac_hard_required_schema(profile):
+    if profile == "multi_item_capacity":
+        return {"capacity_constraint"}
+    if profile == "single_item_multi_period_shortage":
+        return {"shortage_variable", "shortage_cost"}
+    if profile == "fixed_order_cost_big_m":
+        return {"binary_order_variable", "big_m_constraint", "fixed_order_cost"}
+    return set()
+
+
+def _tac_missing_hard_schema(row, profile):
+    required = _tac_hard_required_schema(profile)
+    if not required:
+        return set()
+    missing = set(_required_missing_for_row(row))
+    missing.update(rule for rule in required if _rule_score(row, rule) <= 0.0)
+    if profile == "multi_item_capacity" and capacity_evidence_strength(row) < 2:
+        missing.add("capacity_constraint")
+    return missing & required
+
+
+def _tac_hard_profile_enabled(profile, row, problem_type):
+    explicit_type = problem_type or _row_problem_type(row)
+    if explicit_type in {"multi_item_capacity", "single_item_multi_period_shortage", "fixed_order_cost_big_m"}:
+        return profile == explicit_type
+    text = _problem_text(row)
+    if profile == "multi_item_capacity":
+        return bool(TEXT_TRIGGER_PATTERNS["capacity_constraint"].search(text))
+    if profile == "single_item_multi_period_shortage":
+        return bool(TEXT_TRIGGER_PATTERNS["shortage_variable"].search(text))
+    if profile == "fixed_order_cost_big_m":
+        return bool(TEXT_TRIGGER_PATTERNS["fixed_order_cost"].search(text) or TEXT_TRIGGER_PATTERNS["big_m_constraint"].search(text))
+    return False
+
+
+def should_recover_tac_selection(initial, challenger, profile):
+    """Conservative no-reference TAC recovery from a schema-missing initial choice."""
+    initial_components = _with_tac_profile_components(initial, _row_problem_type(initial))
+    challenger_components = _with_tac_profile_components(challenger, _row_problem_type(challenger))
+    initial_missing = _tac_missing_hard_schema(initial, profile)
+    challenger_missing = _tac_missing_hard_schema(challenger, profile)
+    if not _tac_hard_required_schema(profile):
+        return False
+    if not initial_missing or challenger_missing:
+        return False
+    if challenger_components["execution_success"] <= 0.0 or challenger_components["solver_ok"] <= 0.0:
+        return False
+    if challenger_components["finite_objective"] <= 0.0:
+        return False
+    if challenger_components["objective_term_coverage"] < 0.55:
+        return False
+    if challenger_components["constraint_coverage"] < 0.70:
+        return False
+    if challenger_components["safe_consensus_score"] < 0.15:
+        return False
+    if challenger_components["critical_missing_count"] > 0.0 or challenger_components["text_triggered_hard_gate_failure_count"] > 0.0:
+        return False
+    if challenger_components["objective_term_coverage"] + 0.20 < initial_components["objective_term_coverage"]:
+        return False
+    if challenger_components["constraint_coverage"] + 0.15 < initial_components["constraint_coverage"]:
+        return False
+    return True
+
+
+def _tac_recovery_decision(initial, challengers, profile, problem_type):
+    decision = {
+        "triggered": False,
+        "profile": profile,
+        "reason": "not_applicable",
+        "initial_missing_hard_schema": sorted(_tac_missing_hard_schema(initial, profile)),
+        "challenger_candidate_id": None,
+    }
+    if not _tac_hard_profile_enabled(profile, initial, problem_type):
+        decision["reason"] = "hard_profile_not_enabled"
+        return initial, decision
+    if not decision["initial_missing_hard_schema"]:
+        decision["reason"] = "initial_schema_complete"
+        return initial, decision
+    eligible = [row for row in challengers if should_recover_tac_selection(initial, row, profile)]
+    if not eligible:
+        decision["reason"] = "no_conservative_challenger"
+        return initial, decision
+    challenger = max(eligible, key=lambda row: _tac_profile_key(row, problem_type))
+    decision.update({
+        "triggered": True,
+        "reason": "challenger_completes_hard_schema",
+        "challenger_candidate_id": challenger.get("candidate_id"),
+        "challenger_missing_hard_schema": sorted(_tac_missing_hard_schema(challenger, profile)),
+    })
+    return challenger, decision
 
 
 def _tac_profile_key(row, problem_type, allow_feasible_selection=False):
@@ -679,6 +808,7 @@ def _tac_profile_key(row, problem_type, allow_feasible_selection=False):
         )
     if profile == "multi_item_capacity":
         return common_prefix + (
+            components["capacity_evidence_strength"],
             components["text_triggered_hard_gate_score"],
             components["critical_structure_pass"],
             -components["critical_missing_count"],
@@ -731,9 +861,14 @@ def _tac_profile_key(row, problem_type, allow_feasible_selection=False):
 
 def select_typeaware_consensus(problem_candidates, problem, allow_feasible_selection=False):
     problem_type = (problem or {}).get("problem_type")
-    best = max(problem_candidates, key=lambda row: _tac_profile_key(row, problem_type, allow_feasible_selection=allow_feasible_selection))
+    initial = max(problem_candidates, key=lambda row: _tac_profile_key(row, problem_type, allow_feasible_selection=allow_feasible_selection))
+    profile = _with_tac_profile_components(initial, problem_type)["tac_priority_profile"]
+    best, recovery_decision = _tac_recovery_decision(initial, problem_candidates, profile, problem_type)
     best = dict(best)
     best["selection_components"] = _with_tac_profile_components(best, problem_type)
+    best["selection_components"]["tac_recovery_triggered"] = bool(recovery_decision["triggered"])
+    best["selection_components"]["tac_recovery_reason"] = recovery_decision["reason"]
+    best["tac_recovery_decision"] = recovery_decision
     return best
 
 

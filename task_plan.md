@@ -496,3 +496,40 @@ Notes:
 - `single_item_multi_period` stays saturated at `1.0000`, so ordinary multi-period was not harmed.
 - `single_item_multi_period_shortage` keeps `0.9500`; remaining gap is not fixed by the no-reference signals inspected here.
 - No `run_generation.py` changes and no candidate regeneration were performed.
+
+### Phase 16 — Cross-pool conservative TAC hardening
+
+**Status:** complete on 2026-06-25
+
+Goal:
+
+- Keep `ReplenishVerifier-TypeAware-Consensus` robust across V8 and V9 candidate pools rather than tuning to one regenerated candidate file.
+- Modify only TAC internals/helpers/tests, not Direct, Solver only, Best-of-K, Consensus only, Structure only, Full, FullV2, ConsensusSafe, HybridSafe, TypeAware, or generation.
+- Add conservative no-reference recovery and stable capacity evidence diagnostics.
+
+Actions:
+
+- Added `capacity_evidence_strength(row)` with levels 0/1/2: no capacity evidence, keyword-only evidence, and explicit shared capacity/resource aggregation or structure certificate evidence.
+- Added hard-profile helper functions for TAC-required schema and profile gating.
+- Added `should_recover_tac_selection(initial, challenger, profile)` as conservative no-reference recovery: initial must miss hard-required schema, challenger must complete it, be executable/Optimal/finite-objective, retain objective/constraint coverage, have non-extreme safe consensus, and have no hard-gate/critical failures.
+- Added TAC recovery diagnostics into selected rows via `tac_recovery_decision` and `selection_components.tac_recovery_*`.
+- Scoped hard profile activation to matching problem type or unknown-type text triggers, so ordinary multi-period/newsvendor cases are not penalized by capacity/fixed/shortage gates.
+- Added `tests/test_tac_cross_pool_stability.py` covering forbidden reference keys, schema-complete selection in two synthetic pools, rank/id independence, stable fallback with no valid candidates, hard-profile gating, capacity detector levels, and conservative recovery guards.
+- Reselected existing V8/V9 candidate evaluations from archived experiment results without re-execution or candidate regeneration.
+
+Verification:
+
+- Focused TAC tests: `python -m pytest tests/test_tac_cross_pool_stability.py tests/test_selection_gating.py -q` -> `40 passed`.
+- Full suite: `python -m pytest -q` -> `241 passed, 52 warnings in 10.54s`.
+- V8 selection-only rerun: `runs/tac_crosspool_v8_20260625`, TAC objective_accuracy `0.8500`.
+- V9 selection-only rerun: `runs/tac_crosspool_v9_20260625`, TAC objective_accuracy `0.8200`.
+- V8/V9 leakage audits passed.
+
+Notes:
+
+- V8 TAC stayed at the prior hard-profile level (`0.8500`).
+- V9 TAC stayed at the regenerated baseline (`0.8200`), not below it.
+- Cross-pool average TAC objective_accuracy is `(0.8500 + 0.8200) / 2 = 0.8350`; minimum is `0.8200`.
+- By-type V8 TAC remains fixed Big-M `1.0000`, capacity `0.6000`, ordinary multi-period `1.0000`, shortage `0.9500`, newsvendor `0.7000`.
+- By-type V9 TAC remains fixed Big-M `0.9500`, capacity `0.5500`, ordinary multi-period `1.0000`, shortage `0.9000`, newsvendor `0.7000`.
+- No `run_generation.py` changes and no candidate regeneration were performed.

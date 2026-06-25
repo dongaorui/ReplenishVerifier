@@ -1465,3 +1465,65 @@ The user asked to continue enhancing the existing `ReplenishVerifier-TypeAware-C
 - `Consensus only`, `Structure only`, `Best-of-K`, and other baselines were not changed.
 - Formal TAC selection remains no-reference; oracle/objective correctness are used only in diagnostics and final evaluation.
 - `run_full_consensus_safe_experiment.sh` remains modified from the pre-existing working tree snapshot and was not intentionally edited in this task.
+
+## 2026-06-25 — Cross-pool conservative TAC hardening
+
+### User request
+
+The user asked to improve only `ReplenishVerifier-TypeAware-Consensus` and its internal helper/diagnostics/tests, not overfit to a single V9 candidate pool, not modify other baselines or `run_generation.py`, and validate both V8 and V9. Recovery must be conservative and no-reference only.
+
+### Actions completed
+
+1. Restored planning context by reading `task_plan.md`, `findings.md`, and `progress.md`.
+2. Inspected current TAC implementation in `replenishverifier/experiments/methods.py` and relevant selector tests.
+3. Added TAC-only helpers:
+   - `capacity_evidence_strength(row)` with 0/1/2 evidence levels.
+   - hard-required schema helpers for capacity, shortage, and fixed-order Big-M profiles.
+   - hard-profile activation scoped to explicit problem type or unknown-type text trigger.
+   - `should_recover_tac_selection(initial, challenger, profile)` using only no-reference features.
+4. Added conservative TAC recovery in `select_typeaware_consensus()` and recorded `tac_recovery_decision` diagnostics.
+5. Added `tests/test_tac_cross_pool_stability.py` covering:
+   - no reference/oracle keys in TAC selection components;
+   - schema-complete selection in two synthetic pools;
+   - no candidate-rank/candidate-id shortcut when schema validity differs;
+   - stable fallback when no valid candidate exists;
+   - hard profile activation only by corresponding type or unknown text trigger;
+   - capacity evidence strength levels;
+   - recovery refusal for failed or schema-incomplete challengers.
+6. Reselected existing V8 and V9 candidate evaluations without re-executing candidates or regenerating candidates:
+   - V8 source: `docs/experiment_results/qwen3_8b_k8_100_v8_candidate_diversity_safe_tac_hardprofile_20260625_103043_compare`.
+   - V9 source: `docs/experiment_results/qwen3_8b_k8_100_v9_regen_seed123_hardprofile_20260625_153420_compare`.
+   - Outputs: `runs/tac_crosspool_v8_20260625` and `runs/tac_crosspool_v9_20260625`.
+
+### Verification
+
+- Focused TAC tests:
+  - `python -m pytest tests/test_tac_cross_pool_stability.py tests/test_selection_gating.py -q` -> `40 passed in 1.40s`.
+- Full suite:
+  - `python -m pytest -q` -> `241 passed, 52 warnings in 10.54s`.
+- V8 leakage audit:
+  - `LEAKAGE AUDIT PASSED: no reference_objective usage detected in formal selection scores.`
+- V9 leakage audit:
+  - `LEAKAGE AUDIT PASSED: no reference_objective usage detected in formal selection scores.`
+
+### Cross-pool results
+
+- V8 TAC objective_accuracy: `0.8500`.
+- V9 TAC objective_accuracy: `0.8200`.
+- Cross-pool average TAC objective_accuracy: `0.8350`.
+- Cross-pool minimum TAC objective_accuracy: `0.8200`.
+- V8 by-type TAC: fixed Big-M `1.0000`, capacity `0.6000`, ordinary multi-period `1.0000`, shortage `0.9500`, newsvendor `0.7000`.
+- V9 by-type TAC: fixed Big-M `0.9500`, capacity `0.5500`, ordinary multi-period `1.0000`, shortage `0.9000`, newsvendor `0.7000`.
+
+### Changed files
+
+- `replenishverifier/experiments/methods.py`
+- `tests/test_tac_cross_pool_stability.py` (new)
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+### Notes
+
+No candidate generation, repair generation, or `run_generation.py` change was made. Other baseline selection logic was not intentionally changed. Formal TAC selection remains no-reference; objective correctness/oracle/reference fields are evaluation or diagnostics only.
+不起用 problem_id 或 candidate-file 特判；capacity 没有硬调高，仍以泛化 shared-resource/schema evidence 为准。
