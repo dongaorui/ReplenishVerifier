@@ -1,0 +1,15 @@
+# Table: Selection Diagnostics
+
+| method | n | k0 | k1 | k2 | k3 | k4 | k5 | k6 | k7 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Best-of-K | 100 | 17 | 12 | 4 | 16 | 9 | 13 | 9 | 20 |
+| Consensus only | 100 | 12 | 9 | 9 | 10 | 14 | 15 | 9 | 22 |
+| Direct | 100 | 100 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| ReplenishVerifier-ConsensusSafe | 100 | 9 | 9 | 7 | 20 | 10 | 15 | 9 | 21 |
+| ReplenishVerifier-Full | 100 | 48 | 20 | 2 | 19 | 3 | 1 | 5 | 2 |
+| ReplenishVerifier-FullV2 | 100 | 48 | 20 | 2 | 19 | 3 | 1 | 5 | 2 |
+| ReplenishVerifier-HybridSafe | 100 | 9 | 9 | 7 | 20 | 10 | 15 | 9 | 21 |
+| ReplenishVerifier-TypeAware | 100 | 8 | 10 | 7 | 19 | 11 | 14 | 10 | 21 |
+| ReplenishVerifier-TypeAware-Consensus | 100 | 8 | 9 | 6 | 20 | 10 | 16 | 9 | 22 |
+| Solver only | 100 | 11 | 11 | 8 | 11 | 14 | 15 | 9 | 21 |
+| Structure only | 100 | 54 | 17 | 2 | 16 | 3 | 1 | 5 | 2 |
