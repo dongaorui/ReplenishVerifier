@@ -358,6 +358,75 @@ def _write_avoidable_error_markdown(path, rows):
     Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+FORBIDDEN_FORMAL_SELECTION_KEYS = {
+    "reference_objective",
+    "objective_correct",
+    "objective_accuracy",
+    "relative_error",
+    "oracle",
+    "oracle_rank",
+    "reference_lp",
+    "reference_answer",
+}
+
+
+def compute_best_of_k_audit(main_rows):
+    rows = [row for row in main_rows if (row.get("method_name") or row.get("method")) == "Best-of-K"]
+    component_keys = sorted({key for row in rows for key in ((row.get("selection_components") or {}).keys())})
+    forbidden_component_keys = sorted(set(component_keys) & FORBIDDEN_FORMAL_SELECTION_KEYS)
+    policy_text = "\n".join(str(row.get("selection_policy", "")) for row in rows).lower()
+    uses_ref_flag_values = sorted({str(row.get("uses_reference_objective_for_selection")) for row in rows})
+    issues = []
+    if forbidden_component_keys:
+        issues.append(f"selection_components contain forbidden keys: {forbidden_component_keys}")
+    if any(row.get("uses_reference_objective_for_selection") is not False for row in rows):
+        issues.append("uses_reference_objective_for_selection is not explicitly False for every Best-of-K row")
+    if "closest to reference" in policy_text or "oracle" in policy_text:
+        issues.append("selection_policy contains oracle/reference-closeness wording")
+    return {
+        "method": "Best-of-K",
+        "n_selected_rows": len(rows),
+        "formal_best_of_k_is_no_reference": not issues,
+        "uses_reference_objective_for_selection": any(row.get("uses_reference_objective_for_selection") is not False for row in rows),
+        "uses_objective_correct_for_selection": "objective_correct" in forbidden_component_keys,
+        "uses_oracle_for_selection": any(key in forbidden_component_keys for key in ["oracle", "oracle_rank"]),
+        "uses_reference_lp_for_selection": "reference_lp" in forbidden_component_keys,
+        "uses_reference_answer_for_selection": "reference_answer" in forbidden_component_keys,
+        "forbidden_component_keys": forbidden_component_keys,
+        "selection_component_keys_scanned": component_keys,
+        "uses_reference_objective_for_selection_values": uses_ref_flag_values,
+        "issues": issues,
+        "policy_summary": "Formal Best-of-K uses executable/optimal/objective-present and no-reference quality tie-breakers; objective_correct/reference fields may appear on rows only as evaluation metrics.",
+    }
+
+
+def _write_best_of_k_audit(path_md, path_json, audit):
+    Path(path_json).write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
+    lines = [
+        "# Best-of-K Fairness Audit",
+        "",
+        "This audit checks whether formal `Best-of-K` selection uses reference/oracle fields.",
+        "",
+        f"- formal_best_of_k_is_no_reference: {audit.get('formal_best_of_k_is_no_reference')}",
+        f"- n_selected_rows: {audit.get('n_selected_rows')}",
+        f"- uses_reference_objective_for_selection: {audit.get('uses_reference_objective_for_selection')}",
+        f"- uses_objective_correct_for_selection: {audit.get('uses_objective_correct_for_selection')}",
+        f"- uses_oracle_for_selection: {audit.get('uses_oracle_for_selection')}",
+        f"- uses_reference_lp_for_selection: {audit.get('uses_reference_lp_for_selection')}",
+        f"- uses_reference_answer_for_selection: {audit.get('uses_reference_answer_for_selection')}",
+        f"- forbidden_component_keys: {audit.get('forbidden_component_keys')}",
+        "",
+        "## Notes",
+        "",
+        audit.get("policy_summary", ""),
+        "",
+    ]
+    if audit.get("issues"):
+        lines.extend(["## Issues", ""])
+        lines.extend(f"- {issue}" for issue in audit.get("issues"))
+    Path(path_md).write_text("\n".join(lines), encoding="utf-8")
+
+
 def _selection_components(row):
     return row.get("selection_components") or {}
 
@@ -415,6 +484,93 @@ def compute_wrong_consensus_risk_diagnostics(main_rows, methods=None, risk_thres
 def compute_hard_subset_stress_diagnostics(main_rows, methods=None):
     methods = methods or ["Consensus only", "Structure only", "ReplenishVerifier-TypeAware-Consensus", "ReplenishVerifier-Full"]
     return compute_hard_subset_metrics(main_rows, methods=methods)
+
+
+def compute_tac_comparison_diagnostics(main_rows):
+    selected = _selected_by_method_problem(main_rows)
+    tac = selected.get("ReplenishVerifier-TypeAware-Consensus", {})
+    safe = selected.get("ReplenishVerifier-ConsensusSafe", {})
+    hybrid = selected.get("ReplenishVerifier-HybridSafe", {})
+    full = selected.get("ReplenishVerifier-Full", {})
+    rows = []
+    for pid in sorted(set(tac) | set(safe) | set(hybrid) | set(full)):
+        t = tac.get(pid)
+        s = safe.get(pid)
+        h = hybrid.get(pid)
+        f = full.get(pid)
+        if not t:
+            continue
+        tc = _selection_components(t)
+        sc = _selection_components(s) if s else {}
+        hc = _selection_components(h) if h else {}
+        fc = _selection_components(f) if f else {}
+        rows.append({
+            "problem_id": pid,
+            "problem_type": t.get("problem_type"),
+            "tac_candidate_id": t.get("candidate_id"),
+            "consensussafe_candidate_id": (s or {}).get("candidate_id"),
+            "hybridsafe_candidate_id": (h or {}).get("candidate_id"),
+            "full_candidate_id": (f or {}).get("candidate_id"),
+            "tac_vs_consensussafe_same": bool(s and t.get("candidate_id") == s.get("candidate_id")),
+            "tac_vs_hybridsafe_same": bool(h and t.get("candidate_id") == h.get("candidate_id")),
+            "tac_vs_full_same": bool(f and t.get("candidate_id") == f.get("candidate_id")),
+            "tac_profile": tc.get("tac_priority_profile"),
+            "tac_primary_signal": tc.get("profile_primary_signal"),
+            "tac_safe_consensus_score": tc.get("safe_consensus_score"),
+            "consensussafe_safe_consensus_score": sc.get("safe_consensus_score"),
+            "hybridsafe_safe_consensus_score": hc.get("safe_consensus_score"),
+            "full_safe_consensus_score": fc.get("safe_consensus_score"),
+            "tac_wrong_consensus_risk": tc.get("wrong_consensus_risk"),
+            "consensussafe_wrong_consensus_risk": sc.get("wrong_consensus_risk"),
+            "hybridsafe_wrong_consensus_risk": hc.get("wrong_consensus_risk"),
+            "tac_constraint_coverage": tc.get("constraint_coverage"),
+            "consensussafe_constraint_coverage": sc.get("constraint_coverage"),
+            "hybridsafe_constraint_coverage": hc.get("constraint_coverage"),
+            "tac_objective_term_coverage": tc.get("objective_term_coverage"),
+            "consensussafe_objective_term_coverage": sc.get("objective_term_coverage"),
+            "hybridsafe_objective_term_coverage": hc.get("objective_term_coverage"),
+            "tac_text_triggered_hard_gate_score": tc.get("text_triggered_hard_gate_score"),
+            "tac_critical_missing_count": tc.get("critical_missing_count"),
+            "objective_correct_posthoc_tac": t.get("objective_correct"),
+            "objective_correct_posthoc_consensussafe": (s or {}).get("objective_correct"),
+            "objective_correct_posthoc_hybridsafe": (h or {}).get("objective_correct"),
+            "objective_correct_posthoc_full": (f or {}).get("objective_correct"),
+            "posthoc_only": True,
+        })
+    return rows
+
+
+def build_tac_alias_explanation(tac_comparison_rows):
+    common_safe = [row for row in tac_comparison_rows if row.get("consensussafe_candidate_id")]
+    common_hybrid = [row for row in tac_comparison_rows if row.get("hybridsafe_candidate_id")]
+    safe_same = sum(1 for row in common_safe if row.get("tac_vs_consensussafe_same"))
+    hybrid_same = sum(1 for row in common_hybrid if row.get("tac_vs_hybridsafe_same"))
+    safe_rate = safe_same / max(len(common_safe), 1)
+    hybrid_rate = hybrid_same / max(len(common_hybrid), 1)
+    lines = [
+        "# TAC Alias Explanation",
+        "",
+        "This file is diagnostic-only. It explains whether TypeAware-Consensus still aliases ConsensusSafe or HybridSafe.",
+        "",
+        f"- TAC vs ConsensusSafe same_selection_rate: {safe_rate:.4f}",
+        f"- TAC vs HybridSafe same_selection_rate: {hybrid_rate:.4f}",
+        "",
+    ]
+    if safe_rate == 1.0:
+        lines.extend([
+            "## TAC vs ConsensusSafe remains exact alias",
+            "",
+            "All common problems selected the same candidate. Inspect `tac_vs_safeselector_diff.csv` to confirm whether type-aware fields, objective-term coverage, text-triggered gates, and critical-missing counts are non-discriminative on this run.",
+            "",
+        ])
+    else:
+        lines.extend([
+            "## TAC differs from ConsensusSafe",
+            "",
+            "At least one common problem selected a different candidate, so TAC-specific per-problem-type priorities affected selection.",
+            "",
+        ])
+    return "\n".join(lines)
 
 
 def compute_full_typeaware_consensus_difference_diagnostics(main_rows):
@@ -975,6 +1131,9 @@ def diagnose_selection_metrics(exp_dir, candidates_path=None, benchmark_path=Non
     missed_oracle_summary = compute_missed_oracle_summary(main_rows, candidate_rows) if candidate_rows else []
     paired_method_comparison = compute_paired_method_comparison(main_rows)
     avoidable_error_summary = compute_avoidable_error_summary(main_rows, candidate_rows) if candidate_rows else []
+    best_of_k_audit = compute_best_of_k_audit(main_rows)
+    tac_comparison_diagnostics = compute_tac_comparison_diagnostics(main_rows)
+    tac_alias_explanation = build_tac_alias_explanation(tac_comparison_diagnostics)
     consensus_safe_counterfactual = compute_consensus_safe_counterfactual(main_rows)
     wrong_consensus_risk = compute_wrong_consensus_risk_diagnostics(main_rows)
     hard_subset_stress_test = compute_hard_subset_stress_diagnostics(main_rows)
@@ -1024,6 +1183,10 @@ def diagnose_selection_metrics(exp_dir, candidates_path=None, benchmark_path=Non
     write_markdown(out_dir / "missed_oracle_summary.md", missed_oracle_summary, "Missed Oracle Summary")
     write_csv(out_dir / "paired_method_comparison.csv", paired_method_comparison)
     write_markdown(out_dir / "paired_method_comparison.md", paired_method_comparison, "Paired Method Comparison")
+    _write_best_of_k_audit(out_dir / "best_of_k_audit.md", out_dir / "best_of_k_audit.json", best_of_k_audit)
+    write_csv(out_dir / "tac_vs_safeselector_diff.csv", tac_comparison_diagnostics)
+    _write_posthoc_diagnostic_markdown(out_dir / "tac_vs_safeselector_diff.md", "TAC vs Safe Selector Difference Diagnostics", tac_comparison_diagnostics)
+    (out_dir / "tac_alias_explanation.md").write_text(tac_alias_explanation, encoding="utf-8")
     write_csv(out_dir / "avoidable_error_summary.csv", avoidable_error_summary)
     _write_avoidable_error_markdown(out_dir / "avoidable_error_summary.md", avoidable_error_summary)
     write_csv(out_dir / "consensus_safe_counterfactual.csv", consensus_safe_counterfactual)
@@ -1083,6 +1246,9 @@ def diagnose_selection_metrics(exp_dir, candidates_path=None, benchmark_path=Non
         "missed_oracle_summary": missed_oracle_summary,
         "paired_method_comparison": paired_method_comparison,
         "avoidable_error_summary": avoidable_error_summary,
+        "best_of_k_audit": best_of_k_audit,
+        "tac_comparison_diagnostics": tac_comparison_diagnostics,
+        "tac_alias_explanation": tac_alias_explanation,
         "consensus_safe_counterfactual": consensus_safe_counterfactual,
         "wrong_consensus_risk": wrong_consensus_risk,
         "hard_subset_stress_test": hard_subset_stress_test,

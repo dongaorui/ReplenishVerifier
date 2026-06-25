@@ -3,6 +3,7 @@ from replenishverifier.experiments.methods import (
     MAIN_METHODS,
     METHODS,
     select_for_method,
+    select_typeaware_consensus,
     type_aware_consensus_selection_components,
 )
 
@@ -624,3 +625,100 @@ def test_type_aware_selection_components_do_not_include_reference_or_oracle_fiel
         assert "objective_correct" not in component_keys
         assert "relative_error" not in component_keys
         assert "reference_lp" not in component_keys
+
+
+def test_select_typeaware_consensus_uses_fixed_order_profile_before_raw_consensus():
+    rows = [
+        _row("c0", problem_type="fixed_order_cost_big_m", structure_score=0.90, missing=["big_m_constraint"], consensus=0.95),
+        _row("c1", problem_type="fixed_order_cost_big_m", structure_score=0.82, missing=[], consensus=0.60),
+    ]
+    rows[0]["objective_term_coverage"] = 0.67
+    rows[0]["objective_term_lp_coefficient_coverage"] = 0.67
+    rows[0]["type_aware_static_validation"] = {"score": 0.75, "hard_gate_score": 0.75, "hard_gate_failures": ["missing_big_m_linking"], "missing_items": ["missing_big_m_linking"]}
+    rows[0]["type_aware_static_validation_errors"] = ["missing_big_m_linking"]
+    rows[1]["objective_term_coverage"] = 1.0
+    rows[1]["objective_term_lp_coefficient_coverage"] = 1.0
+    rows[1]["type_aware_static_validation"] = {"score": 1.0, "hard_gate_score": 1.0, "hard_gate_failures": [], "missing_items": []}
+    rows[1]["type_aware_static_validation_errors"] = []
+    for row in rows:
+        row["lp_stats"] = {"lp_exported": True, "objective_present": True, "constraints_count": 4, "variables_count": 4}
+        row["code_output_format_valid"] = True
+        row["static_validation_score"] = 1.0
+        row["natural_language"] = "A setup cost is paid whenever an order is placed; use binary triggers and Big-M links."
+
+    selected = select_typeaware_consensus(rows, {"problem_type": "fixed_order_cost_big_m"})
+
+    assert selected["candidate_id"] == "c1"
+    assert selected["selection_components"]["tac_priority_profile"] == "fixed_order_cost_big_m"
+    assert selected["selection_components"]["profile_primary_signal"] == "fixed_order_schema_objective_big_m"
+
+
+def test_select_typeaware_consensus_uses_capacity_profile_for_capacity_text():
+    rows = [
+        _row("c0", problem_type="multi_item_capacity", structure_score=0.95, missing=["capacity_constraint"], consensus=0.99),
+        _row("c1", problem_type="multi_item_capacity", structure_score=0.78, missing=[], consensus=0.55),
+    ]
+    for row in rows:
+        row["objective_term_coverage"] = 1.0
+        row["objective_term_lp_coefficient_coverage"] = 1.0
+        row["lp_stats"] = {"lp_exported": True, "objective_present": True, "constraints_count": 4, "variables_count": 4}
+        row["code_output_format_valid"] = True
+        row["static_validation_score"] = 1.0
+        row["type_aware_static_validation"] = {"score": 1.0, "hard_gate_score": 1.0, "hard_gate_failures": [], "missing_items": []}
+        row["type_aware_static_validation_errors"] = []
+        row["natural_language"] = "Warehouse capacity and item volume constrain storage each period."
+
+    selected = select_typeaware_consensus(rows, {"problem_type": "multi_item_capacity"})
+
+    assert selected["candidate_id"] == "c1"
+    assert selected["selection_components"]["tac_priority_profile"] == "multi_item_capacity"
+    assert selected["selection_components"]["text_triggered_hard_gate_failures"] == []
+
+
+def test_select_typeaware_consensus_newsvendor_profile_prefers_structure_over_raw_consensus():
+    rows = [
+        _row("c0", problem_type="single_period_newsvendor", structure_score=0.83, missing=[], consensus=0.90),
+        _row("c1", problem_type="single_period_newsvendor", structure_score=0.90, missing=[], consensus=0.20),
+    ]
+    rows[0]["objective_term_coverage"] = 0.67
+    rows[1]["objective_term_coverage"] = 0.33
+    for row in rows:
+        row["objective_term_lp_coefficient_coverage"] = row["objective_term_coverage"]
+        row["lp_stats"] = {"lp_exported": True, "objective_present": True, "constraints_count": 3, "variables_count": 3}
+        row["code_output_format_valid"] = True
+        row["static_validation_score"] = 1.0
+        row["type_aware_static_validation"] = {"checklist": [], "score": 1.0, "hard_gate_score": 1.0, "hard_gate_failures": [], "missing_items": []}
+        row["type_aware_static_validation_errors"] = []
+
+    selected = select_typeaware_consensus(rows, {"problem_type": "single_period_newsvendor"})
+
+    assert selected["candidate_id"] == "c1"
+    assert selected["selection_components"]["tac_priority_profile"] == "single_period_newsvendor"
+    assert selected["selection_components"]["profile_primary_signal"] == "newsvendor_structure_then_terms"
+
+
+def test_typeaware_consensus_reference_fields_do_not_change_per_type_selection():
+    rows_a = [
+        _row("c0", problem_type="fixed_order_cost_big_m", structure_score=0.90, missing=["fixed_order_cost"], consensus=0.95),
+        _row("c1", problem_type="fixed_order_cost_big_m", structure_score=0.80, missing=[], consensus=0.60),
+    ]
+    rows_b = [dict(row) for row in rows_a]
+    for rows in [rows_a, rows_b]:
+        rows[0]["objective_term_coverage"] = 0.67
+        rows[0]["objective_term_lp_coefficient_coverage"] = 0.67
+        rows[1]["objective_term_coverage"] = 1.0
+        rows[1]["objective_term_lp_coefficient_coverage"] = 1.0
+        for row in rows:
+            row["lp_stats"] = {"lp_exported": True, "objective_present": True, "constraints_count": 4, "variables_count": 4}
+            row["code_output_format_valid"] = True
+            row["static_validation_score"] = 1.0
+            row["type_aware_static_validation"] = {"score": 1.0, "hard_gate_score": 1.0, "hard_gate_failures": [], "missing_items": []}
+            row["type_aware_static_validation_errors"] = []
+    rows_b[0].update({"reference_objective": 10.0, "objective_correct": 1.0, "relative_error": 0.0, "reference_lp": "x", "reference_answer": "x"})
+    rows_b[1].update({"reference_objective": 10.0, "objective_correct": 0.0, "relative_error": 99.0, "reference_lp": "y", "reference_answer": "y"})
+
+    selected_a = select_for_method("ReplenishVerifier-TypeAware-Consensus", {"p0": rows_a}, _benchmark("fixed_order_cost_big_m"))[0]
+    selected_b = select_for_method("ReplenishVerifier-TypeAware-Consensus", {"p0": rows_b}, _benchmark("fixed_order_cost_big_m"))[0]
+
+    assert selected_a["candidate_id"] == selected_b["candidate_id"] == "c1"
+    assert set(selected_a["selection_components"]).isdisjoint({"reference_objective", "objective_correct", "relative_error", "reference_lp", "reference_answer", "oracle"})

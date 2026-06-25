@@ -609,6 +609,118 @@ def type_aware_consensus_selection_score(row):
     )
 
 
+def _tac_profile_name(problem_type):
+    if problem_type in {"multi_item_capacity", "single_item_multi_period_shortage", "fixed_order_cost_big_m"}:
+        return problem_type
+    if problem_type == "single_period_newsvendor":
+        return "single_period_newsvendor"
+    return "single_item_multi_period"
+
+
+def _tac_profile_primary_signal(profile):
+    return {
+        "multi_item_capacity": "capacity_schema_text_gate",
+        "single_item_multi_period_shortage": "shortage_schema_objective",
+        "fixed_order_cost_big_m": "fixed_order_schema_objective_big_m",
+        "single_period_newsvendor": "newsvendor_structure_then_terms",
+        "single_item_multi_period": "inventory_balance_objective_terms",
+    }.get(profile, "inventory_balance_objective_terms")
+
+
+def _with_tac_profile_components(row, problem_type):
+    components = type_aware_consensus_selection_components(row)
+    profile = _tac_profile_name(problem_type or _row_problem_type(row))
+    components["tac_priority_profile"] = profile
+    components["profile_primary_signal"] = _tac_profile_primary_signal(profile)
+    return components
+
+
+def _tac_profile_key(row, problem_type, allow_feasible_selection=False):
+    components = _with_tac_profile_components(row, problem_type)
+    gated = hard_selection_gate(row.get("execution") or {}, 1.0, allow_feasible_selection=allow_feasible_selection)
+    runtime = -_runtime_sec(row)
+    candidate_order = -_candidate_index(row)
+    common_prefix = (
+        gated,
+        components["solver_optimal"],
+        components["finite_objective"],
+    )
+    profile = components["tac_priority_profile"]
+    if profile == "fixed_order_cost_big_m":
+        return common_prefix + (
+            components["critical_structure_pass"],
+            -components["critical_missing_count"],
+            components["text_triggered_hard_gate_score"],
+            components["objective_term_coverage"],
+            components["lp_coefficient_sanity"],
+            components["hard_gate_score"],
+            components["safe_consensus_score"],
+            -components["wrong_consensus_risk"],
+            components["consensus_cluster_support"],
+            components["structure_completeness"],
+            runtime,
+            candidate_order,
+        )
+    if profile == "multi_item_capacity":
+        return common_prefix + (
+            components["text_triggered_hard_gate_score"],
+            components["critical_structure_pass"],
+            -components["critical_missing_count"],
+            components["safe_consensus_score"],
+            -components["wrong_consensus_risk"],
+            components["constraint_coverage"],
+            components["objective_term_coverage"],
+            components["structure_completeness"],
+            components["consensus_cluster_support"],
+            runtime,
+            candidate_order,
+        )
+    if profile == "single_item_multi_period_shortage":
+        return common_prefix + (
+            components["critical_structure_pass"],
+            -components["critical_missing_count"],
+            components["objective_term_coverage"],
+            components["hard_gate_score"],
+            components["safe_consensus_score"],
+            -components["wrong_consensus_risk"],
+            components["constraint_coverage"],
+            components["structure_completeness"],
+            components["consensus_cluster_support"],
+            runtime,
+            candidate_order,
+        )
+    if profile == "single_period_newsvendor":
+        return common_prefix + (
+            components["structure_completeness"],
+            components["constraint_coverage"],
+            components["objective_term_coverage"],
+            components["safe_consensus_score"],
+            -components["wrong_consensus_risk"],
+            components["consensus_cluster_support"],
+            runtime,
+            candidate_order,
+        )
+    return common_prefix + (
+        components["safe_consensus_score"],
+        -components["wrong_consensus_risk"],
+        components["candidate_quality_score"],
+        components["objective_term_coverage"],
+        components["constraint_coverage"],
+        components["structure_completeness"],
+        components["consensus_cluster_support"],
+        runtime,
+        candidate_order,
+    )
+
+
+def select_typeaware_consensus(problem_candidates, problem, allow_feasible_selection=False):
+    problem_type = (problem or {}).get("problem_type")
+    best = max(problem_candidates, key=lambda row: _tac_profile_key(row, problem_type, allow_feasible_selection=allow_feasible_selection))
+    best = dict(best)
+    best["selection_components"] = _with_tac_profile_components(best, problem_type)
+    return best
+
+
 def _lp_health_score(row):
     stats = row.get("lp_stats") or {}
     if not stats.get("lp_exported"):
@@ -1292,7 +1404,7 @@ def _annotate_selected_score(best, method_name, allow_feasible_selection=False):
         best["objective_term_coverage"] = best["selection_components"]["objective_term_coverage"]
         best["repair_feedback_count"] = best["selection_components"]["repair_feedback_count"]
     if method_name == "ReplenishVerifier-TypeAware-Consensus":
-        best["selection_components"] = type_aware_consensus_selection_components(best)
+        best["selection_components"] = _with_tac_profile_components(best, _row_problem_type(best))
         best["hard_gate_failures"] = _type_aware_hard_gate_failures(best)
         best["hard_gate_score"] = best["selection_components"]["hard_gate_score"]
         best["constraint_coverage"] = best["selection_components"]["constraint_coverage"]
@@ -1348,6 +1460,8 @@ def select_for_method(method_name, evaluated_by_problem, benchmark, allow_feasib
         elif method_name == "ReplenishVerifier-TypeAware":
             pool, pool_metadata = _type_aware_candidate_pool_filter(rows, allow_feasible_selection=allow_feasible_selection)
             best = max(pool, key=lambda row: _selection_tie_break_key_for_method(row, method_name, allow_feasible_selection=allow_feasible_selection))
+        elif method_name == "ReplenishVerifier-TypeAware-Consensus":
+            best = select_typeaware_consensus(rows, reference, allow_feasible_selection=allow_feasible_selection)
         elif method_name == "ReplenishVerifier-FullV2":
             full_best = max(
                 rows,

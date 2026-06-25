@@ -2,8 +2,10 @@ from replenishverifier.experiments.diagnose_selection_metrics import (
     build_method_redundancy_report,
     build_metric_saturation_report,
     compute_avoidable_error_summary,
+    compute_best_of_k_audit,
     compute_full_typeaware_consensus_difference_diagnostics,
     compute_method_selection_clusters,
+    compute_tac_comparison_diagnostics,
     compute_wrong_consensus_risk_diagnostics,
     diagnose_selection_metrics,
 )
@@ -39,6 +41,9 @@ def test_diagnose_selection_metrics_writes_comparisons_and_debug(tmp_path):
     exp_dir = tmp_path / "exp"
     exp_dir.mkdir()
     main_rows = [_selected("Direct", "p0", "m_k0"), _selected("Best-of-K", "p0", "m_k1", objective_correct=0.0)]
+    main_rows[1]["uses_reference_objective_for_selection"] = False
+    main_rows[1]["selection_policy"] = "best executable/optimal candidate by no-reference tie-breaker, with Hard Selection Gate for formal score; no reference objective"
+    main_rows[1]["selection_components"] = {"selector_family": "best_of_k", "structure_score": 1.0}
     candidate_rows = [dict(main_rows[0], method_name=None), dict(main_rows[1], method_name=None)]
     write_jsonl(exp_dir / "main_results.jsonl", main_rows)
     write_jsonl(exp_dir / "candidate_evaluations.jsonl", candidate_rows)
@@ -49,10 +54,57 @@ def test_diagnose_selection_metrics_writes_comparisons_and_debug(tmp_path):
     assert (exp_dir / "diag" / "metric_comparison.md").exists()
     assert (exp_dir / "diag" / "selection_score_debug.csv").exists()
     assert (exp_dir / "diag" / "same_selection_rate.csv").exists()
+    assert (exp_dir / "diag" / "best_of_k_audit.md").exists()
+    assert (exp_dir / "diag" / "best_of_k_audit.json").exists()
     assert result["metric_comparison"]
+    assert result["best_of_k_audit"]["formal_best_of_k_is_no_reference"] is True
     assert any(row["status"] in {"OK", "MISSING"} for row in result["metric_comparison"])
     debug_text = (exp_dir / "diag" / "selection_score_debug.csv").read_text(encoding="utf-8")
     assert "objective_correct_posthoc" in debug_text
+
+
+def test_compute_best_of_k_audit_reports_no_reference_signals():
+    best = _selected("Best-of-K", "p0", "m_k1", objective_correct=1.0)
+    best["selection_policy"] = "best executable/optimal candidate by no-reference tie-breaker, with Hard Selection Gate for formal score; no reference objective"
+    best["uses_reference_objective_for_selection"] = False
+    best["selection_components"] = {"selector_family": "best_of_k", "structure_score": 1.0}
+
+    audit = compute_best_of_k_audit([best])
+
+    assert audit["method"] == "Best-of-K"
+    assert audit["formal_best_of_k_is_no_reference"] is True
+    assert audit["uses_reference_objective_for_selection"] is False
+    assert audit["uses_objective_correct_for_selection"] is False
+    assert audit["uses_oracle_for_selection"] is False
+    assert audit["uses_reference_lp_for_selection"] is False
+    assert audit["uses_reference_answer_for_selection"] is False
+    assert audit["forbidden_component_keys"] == []
+
+
+def test_compute_tac_comparison_diagnostics_reports_alias_reason():
+    tac = _selected("ReplenishVerifier-TypeAware-Consensus", "p0", "m_k1", objective_correct=1.0)
+    safe = _selected("ReplenishVerifier-ConsensusSafe", "p0", "m_k1", objective_correct=1.0)
+    hybrid = _selected("ReplenishVerifier-HybridSafe", "p0", "m_k0", objective_correct=0.0, missing=["capacity_constraint"])
+    tac["selection_components"] = {
+        "tac_priority_profile": "multi_item_capacity",
+        "safe_consensus_score": 0.7,
+        "wrong_consensus_risk": 0.0,
+        "objective_term_coverage": 1.0,
+        "constraint_coverage": 1.0,
+        "text_triggered_hard_gate_score": 1.0,
+        "critical_missing_count": 0.0,
+    }
+    safe["selection_components"] = {"safe_consensus_score": 0.7, "wrong_consensus_risk": 0.0, "objective_term_coverage": 1.0, "constraint_coverage": 1.0}
+    hybrid["selection_components"] = {"safe_consensus_score": 0.9, "wrong_consensus_risk": 0.4, "objective_term_coverage": 1.0, "constraint_coverage": 0.5}
+
+    rows = compute_tac_comparison_diagnostics([tac, safe, hybrid])
+
+    assert rows[0]["problem_id"] == "p0"
+    assert rows[0]["tac_vs_consensussafe_same"] is True
+    assert rows[0]["tac_vs_hybridsafe_same"] is False
+    assert rows[0]["tac_profile"] == "multi_item_capacity"
+    assert "objective_correct_posthoc_tac" in rows[0]
+    assert rows[0]["posthoc_only"] is True
 
 
 def test_diagnose_detects_reported_mismatch(tmp_path):
