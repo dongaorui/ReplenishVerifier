@@ -13,6 +13,10 @@ from replenishverifier.experiments.baselines import (
     or_r1_like_voting_score,
     sirl_like_lp_stats_score,
 )
+from replenishverifier.experiments.deep_semantic_validation import (
+    compute_deep_type_aware_validation,
+    compute_semantic_structure_validation,
+)
 from replenishverifier.experiments.fullv2_features import (
     compute_fullv2_guarded_selection,
     fullv2_selection_components,
@@ -135,6 +139,18 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
         parsed=parsed,
         generated_code=generated_code,
     )
+    semantic_structure_validation = compute_semantic_structure_validation(
+        reference.get("problem_type"),
+        parsed=parsed,
+        generated_code=generated_code,
+        parameters=reference.get("parameters") or reference.get("params"),
+    )
+    deep_type_aware_validation = compute_deep_type_aware_validation(
+        reference.get("problem_type"),
+        generated_code=generated_code,
+        parsed=parsed,
+        parameters=reference.get("parameters") or reference.get("params"),
+    )
     runtime_fields = {
         "code_execution_time": float(execution.get("code_execution_time") or 0.0),
         "solver_lp_export_time": float(execution.get("solver_lp_export_time") or 0.0),
@@ -173,6 +189,12 @@ def evaluate_candidate(candidate, reference, work_dir, timeout=30, force_skip_ex
         "reference_objective": reference.get("reference_objective"),
         "reference_status": reference.get("reference_status"),
         "objective_term_verification": objective_term_result,
+        "semantic_structure_validation": semantic_structure_validation,
+        "semantic_structure_validation_score": semantic_structure_validation.get("score"),
+        "semantic_structure_validation_errors": semantic_structure_validation.get("errors", []),
+        "deep_type_aware_validation": deep_type_aware_validation,
+        "deep_type_aware_validation_score": deep_type_aware_validation.get("score"),
+        "deep_type_aware_validation_errors": deep_type_aware_validation.get("errors", []),
         "objective_term_coverage": objective_term_result.get("objective_term_coverage"),
         "objective_term_surface_coverage": objective_term_result.get("objective_term_surface_coverage"),
         "objective_term_lp_coefficient_coverage": objective_term_result.get("objective_term_lp_coefficient_coverage"),
@@ -421,9 +443,49 @@ def _type_aware_hard_gate_failures(row):
     return list(validation.get("hard_gate_failures") or [])
 
 
+def _semantic_structure_validation(row):
+    return row.get("semantic_structure_validation") or {}
+
+
+def _semantic_structure_validation_score(row):
+    value = row.get("semantic_structure_validation_score")
+    if value is None:
+        value = _semantic_structure_validation(row).get("score")
+    return float(1.0 if value is None else value)
+
+
+def _deep_type_aware_validation(row):
+    return row.get("deep_type_aware_validation") or {}
+
+
+def _deep_type_aware_validation_score(row):
+    value = row.get("deep_type_aware_validation_score")
+    if value is None:
+        value = _deep_type_aware_validation(row).get("score")
+    return float(1.0 if value is None else value)
+
+
+def _deep_type_aware_hard_gate_score(row):
+    value = _deep_type_aware_validation(row).get("hard_gate_score")
+    return float(1.0 if value is None else value)
+
+
+def _deep_semantic_errors(row):
+    errors = set(row.get("semantic_structure_validation_errors") or [])
+    errors.update(row.get("deep_type_aware_validation_errors") or [])
+    errors.update(_semantic_structure_validation(row).get("errors") or [])
+    errors.update(_deep_type_aware_validation(row).get("errors") or [])
+    return sorted(errors)
+
+
+def _deep_semantic_score(row):
+    return min(_semantic_structure_validation_score(row), _deep_type_aware_validation_score(row))
+
+
 def _type_aware_repair_feedback_count(row):
     missing = set(_type_aware_errors(row))
     missing.update(_critical_missing_structures(row))
+    missing.update(_deep_semantic_errors(row))
     return len(missing)
 
 
@@ -533,19 +595,23 @@ def _text_triggered_hard_gate_score(row):
 def _candidate_quality_score(row):
     critical_missing = _critical_missing_structures(row)
     text_failures = _text_triggered_hard_gate_failures(row)
+    deep_errors = _deep_semantic_errors(row)
     return float(
-        0.22 * _constraint_coverage(row)
-        + 0.22 * _objective_term_coverage(row)
-        + 0.16 * _lp_coefficient_sanity(row)
-        + 0.14 * _lp_health_score(row)
-        + 0.10 * _structure_score(row)
-        + 0.07 * _type_aware_hard_gate_score(row)
-        + 0.04 * _type_aware_validation_score(row)
+        0.19 * _constraint_coverage(row)
+        + 0.19 * _objective_term_coverage(row)
+        + 0.14 * _lp_coefficient_sanity(row)
+        + 0.12 * _lp_health_score(row)
+        + 0.09 * _structure_score(row)
+        + 0.07 * _deep_semantic_score(row)
+        + 0.06 * _deep_type_aware_hard_gate_score(row)
+        + 0.06 * _type_aware_hard_gate_score(row)
+        + 0.03 * _type_aware_validation_score(row)
         + 0.03 * _text_triggered_hard_gate_score(row)
         + 0.01 * _code_validity_score(row)
         + 0.01 * _static_validation_score(row)
         - 0.30 * len(critical_missing)
         - 0.25 * len(text_failures)
+        - 0.22 * len(deep_errors)
     )
 
 
@@ -739,6 +805,13 @@ def type_aware_consensus_selection_components(row):
     base["critical_missing_count"] = float(len(critical_missing))
     base["critical_structure_pass"] = 1.0 if not critical_missing else 0.0
     base["critical_missing_structures"] = critical_missing
+    deep_errors = _deep_semantic_errors(row)
+    base["semantic_structure_validation_score"] = _semantic_structure_validation_score(row)
+    base["deep_type_aware_validation_score"] = _deep_type_aware_validation_score(row)
+    base["deep_type_aware_hard_gate_score"] = _deep_type_aware_hard_gate_score(row)
+    base["deep_semantic_score"] = _deep_semantic_score(row)
+    base["deep_semantic_error_count"] = float(len(deep_errors))
+    base["deep_semantic_errors"] = deep_errors
     base.update(_safe_consensus_components(row))
     base.update(_tac_llmopt_signal_details(row))
     return base
@@ -757,7 +830,9 @@ def type_aware_consensus_selection_score(row):
         + 360.0 * c["constraint_coverage"]
         + 320.0 * c["lp_coefficient_sanity"]
         + 260.0 * c["lp_health_score"]
+        + 220.0 * c["deep_semantic_score"]
         + 180.0 * c["structure_completeness"]
+        + 130.0 * c["deep_type_aware_hard_gate_score"]
         + 110.0 * c["hard_gate_score"]
         + 80.0 * c["text_triggered_hard_gate_score"]
         + 160.0 * c["llmopt_signal_score"]
@@ -769,6 +844,7 @@ def type_aware_consensus_selection_score(row):
         + 10.0 * c["static_validation_score"]
         - 520.0 * c["critical_missing_count"]
         - 420.0 * c["text_triggered_hard_gate_failure_count"]
+        - 520.0 * c["deep_semantic_error_count"]
         - 360.0 * c["wrong_consensus_risk"]
         - 2.0 * c["repair_feedback_count"]
         - 0.1 * c["runtime_sec"]
@@ -1046,6 +1122,9 @@ def _tac_profile_key(row, problem_type, allow_feasible_selection=False):
             components["critical_structure_pass"],
             -components["critical_missing_count"],
             components["objective_term_coverage"],
+            components["deep_semantic_score"],
+            -components["deep_semantic_error_count"],
+            components["deep_type_aware_hard_gate_score"],
             components["hard_gate_score"],
             components["safe_consensus_score"],
             -components["wrong_consensus_risk"],

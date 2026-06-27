@@ -155,6 +155,81 @@ def semantic_frame(problem_type, params):
             ],
             "solver_type": "mixed_integer_linear_programming",
         }
+    elif problem_type == "single_item_multi_period_lead_time":
+        periods = list(range(params["periods"]))
+        frame = {
+            "sets": {"periods": periods, "item": "single_sku"},
+            "parameters": {
+                "initial_inventory": params["initial_inventory"],
+                "demand_by_period": params["demand"],
+                "lead_time": params["lead_time"],
+                "scheduled_arrivals": params["scheduled_arrivals"],
+                "unit_order_cost": params["unit_order_cost"],
+                "holding_cost": params["holding_cost"],
+            },
+            "decision_variables": {
+                "order_quantity": "Q_t: order placed in period t and received after L periods",
+                "inventory_level": "I_t: ending inventory after delayed arrivals and demand",
+            },
+            "objective_terms": ["unit ordering cost for Q_t", "holding cost for delayed-ending inventory I_t"],
+            "constraints": [
+                "lead-time inventory balance I_t = I_{t-1} + arrivals_t - demand_t",
+                "arrivals_t equals Q_{t-L} once t-L >= 0, otherwise scheduled_arrivals_t",
+                "nonnegative order and inventory variables",
+            ],
+            "solver_type": "linear_programming",
+        }
+    elif problem_type == "single_item_multi_period_service_level":
+        periods = list(range(params["periods"]))
+        frame = {
+            "sets": {"periods": periods, "item": "single_sku"},
+            "parameters": {
+                "initial_inventory": params["initial_inventory"],
+                "demand_by_period": params["demand"],
+                "unit_order_cost": params["unit_order_cost"],
+                "holding_cost": params["holding_cost"],
+                "service_level": params["service_level"],
+            },
+            "decision_variables": {
+                "order_quantity": "Q_t: replenishment quantity ordered in each period",
+                "inventory_level": "I_t: ending inventory after demand",
+                "unmet_demand": "B_t: unmet demand used to enforce the service-level cap",
+            },
+            "objective_terms": ["unit ordering cost for Q_t", "holding cost for I_t"],
+            "constraints": [
+                "inventory/backlog balance with unmet demand variable B_t",
+                "service-level or fill-rate constraint limiting total unmet demand",
+                "nonnegative order, inventory, and unmet-demand variables",
+            ],
+            "solver_type": "linear_programming",
+        }
+    elif problem_type == "single_item_multi_period_moq_batch":
+        periods = list(range(params["periods"]))
+        frame = {
+            "sets": {"periods": periods, "item": "single_sku"},
+            "parameters": {
+                "initial_inventory": params["initial_inventory"],
+                "demand_by_period": params["demand"],
+                "unit_order_cost": params["unit_order_cost"],
+                "holding_cost": params["holding_cost"],
+                "minimum_order_quantity": params["minimum_order_quantity"],
+                "batch_size": params["batch_size"],
+                "big_m": params["big_m"],
+            },
+            "decision_variables": {
+                "order_quantity": "Q_t: replenishment quantity in each period",
+                "inventory_level": "I_t: ending inventory after period t",
+                "order_trigger": "Y_t: binary variable indicating whether an order is placed",
+                "batch_multiplier": "Z_t: integer number of order batches",
+            },
+            "objective_terms": ["unit ordering cost for Q_t", "holding cost for I_t"],
+            "constraints": [
+                "inventory balance in every period",
+                "MOQ is conditional: Q_t >= MOQ * Y_t and Q_t <= M * Y_t",
+                "batch linking constraint Q_t = batch_size * Z_t with integer Z_t",
+            ],
+            "solver_type": "mixed_integer_linear_programming",
+        }
     else:
         raise ValueError(f"Unknown problem_type: {problem_type}")
 
@@ -192,6 +267,14 @@ def replenishment_entities(problem_type, params):
         entities["big_m"] = params["big_m"]
     if "lead_time" in params:
         entities["lead_time"] = params["lead_time"]
+    if "scheduled_arrivals" in params:
+        entities["scheduled_arrivals"] = params["scheduled_arrivals"]
+    if "service_level" in params:
+        entities["service_level"] = params["service_level"]
+    if "minimum_order_quantity" in params:
+        entities["minimum_order_quantity"] = params["minimum_order_quantity"]
+    if "batch_size" in params:
+        entities["batch_size"] = params["batch_size"]
 
     if problem_type in {
         "single_period_newsvendor",
@@ -199,11 +282,17 @@ def replenishment_entities(problem_type, params):
         "single_item_multi_period_shortage",
         "multi_item_capacity",
         "fixed_order_cost_big_m",
+        "single_item_multi_period_lead_time",
+        "single_item_multi_period_service_level",
+        "single_item_multi_period_moq_batch",
     }:
         entities["order_quantity"] = "Q"
         entities["inventory_level"] = "I"
-    if problem_type in {"single_period_newsvendor", "single_item_multi_period_shortage"}:
+    if problem_type in {"single_period_newsvendor", "single_item_multi_period_shortage", "single_item_multi_period_service_level"}:
         entities["shortage_or_backlog"] = "B"
+    if problem_type == "single_item_multi_period_moq_batch":
+        entities["order_trigger"] = "Y"
+        entities["batch_multiplier"] = "Z"
     return entities
 
 
@@ -245,6 +334,28 @@ def modeling_steps(problem_type, params):
             "Add Big-M linking constraints Q_t <= M * Y_t so positive orders activate the binary trigger.",
             "Minimize unit ordering, holding, and fixed ordering costs.",
         ]
+    if problem_type == "single_item_multi_period_lead_time":
+        return [
+            "Define period-indexed order variables Q_t and inventory variables I_t.",
+            "Use delayed arrivals in inventory balance: arrivals_t = Q_{t-L} when t-L >= 0 and scheduled arrivals otherwise.",
+            "Minimize ordering and holding costs over the planning horizon.",
+            "Require order and inventory variables to be nonnegative.",
+        ]
+    if problem_type == "single_item_multi_period_service_level":
+        return [
+            "Define Q_t, I_t, and unmet-demand variables B_t.",
+            "Use inventory/backlog balance constraints to account for unmet demand.",
+            "Add a service-level or fill-rate constraint limiting total unmet demand.",
+            "Minimize ordering and holding costs while satisfying the service-level requirement.",
+        ]
+    if problem_type == "single_item_multi_period_moq_batch":
+        return [
+            "Define Q_t, I_t, binary order-trigger Y_t, and integer batch multiplier Z_t.",
+            "Use inventory balance constraints in every period.",
+            "Add conditional MOQ constraints Q_t >= MOQ * Y_t and Q_t <= M * Y_t so MOQ applies only when ordering.",
+            "Add batch linking constraints Q_t = batch_size * Z_t with integer Z_t.",
+            "Minimize ordering and holding costs.",
+        ]
     raise ValueError(f"Unknown problem_type: {problem_type}")
 
 
@@ -285,6 +396,9 @@ def validate_replenishment_instance(row, include_labels=True):
         "single_item_multi_period_shortage": ["periods", "initial_inventory", "demand", "unit_order_cost", "holding_cost", "shortage_cost"],
         "multi_item_capacity": ["items", "volume", "storage_capacity"],
         "fixed_order_cost_big_m": ["fixed_order_cost", "big_m"],
+        "single_item_multi_period_lead_time": ["periods", "initial_inventory", "demand", "lead_time", "scheduled_arrivals"],
+        "single_item_multi_period_service_level": ["periods", "initial_inventory", "demand", "service_level", "shortage_or_backlog"],
+        "single_item_multi_period_moq_batch": ["periods", "initial_inventory", "demand", "minimum_order_quantity", "batch_size", "order_trigger", "batch_multiplier"],
     }[problem_type]
     missing_entities = [key for key in required_entities if key not in entities]
     if missing_entities:
@@ -359,6 +473,52 @@ def sample_params(problem_type, rng=None):
             "big_m": max(sum(demand), max(demand) * 2),
         }
 
+    if problem_type == "single_item_multi_period_lead_time":
+        t_count = rng.randint(4, 6)
+        lead_time = rng.randint(1, 2)
+        demand = [rng.randint(10, 45) for _ in range(t_count)]
+        scheduled_arrivals = [rng.randint(0, 20) for _ in range(lead_time)]
+        early_gap = max(0, sum(demand[:lead_time]) - sum(scheduled_arrivals))
+        return {
+            "periods": t_count,
+            "initial_inventory": early_gap + rng.randint(5, 25),
+            "demand": demand,
+            "lead_time": lead_time,
+            "scheduled_arrivals": scheduled_arrivals,
+            "unit_order_cost": rng.randint(1, 5),
+            "holding_cost": rng.randint(1, 4),
+        }
+
+    if problem_type == "single_item_multi_period_service_level":
+        t_count = rng.randint(3, 6)
+        demand = [rng.randint(15, 55) for _ in range(t_count)]
+        service_level = rng.choice([0.85, 0.9, 0.95])
+        return {
+            "periods": t_count,
+            "initial_inventory": rng.randint(0, 25),
+            "demand": demand,
+            "unit_order_cost": rng.randint(1, 5),
+            "holding_cost": rng.randint(1, 4),
+            "service_level": service_level,
+            "max_unmet": int((1.0 - service_level) * sum(demand)),
+        }
+
+    if problem_type == "single_item_multi_period_moq_batch":
+        t_count = rng.randint(3, 6)
+        demand = [rng.randint(15, 55) for _ in range(t_count)]
+        batch_size = rng.choice([5, 10, 12])
+        moq = batch_size * rng.randint(1, 2)
+        return {
+            "periods": t_count,
+            "initial_inventory": rng.randint(0, 25),
+            "demand": demand,
+            "unit_order_cost": rng.randint(1, 5),
+            "holding_cost": rng.randint(1, 4),
+            "minimum_order_quantity": moq,
+            "batch_size": batch_size,
+            "big_m": max(sum(demand) + moq, max(demand) * 3),
+        }
+
     raise ValueError(f"Unknown problem_type: {problem_type}")
 
 
@@ -405,6 +565,30 @@ def natural_language_variants(problem_type, params):
             _variant("business", f"A firm pays a setup cost whenever it places an order during a {params['periods']}-period horizon. It starts with {params['initial_inventory']} units and faces demands {params['demand']}. Unit ordering, holding, and fixed order costs are {params['unit_order_cost']}, {params['holding_cost']}, and {params['fixed_order_cost']}. Build a Big-M mixed-integer replenishment model with M={params['big_m']}.", "fixed_order_cost_big_m_business"),
             _variant("verbose", f"In this replenishment problem, ordering in a period incurs both a variable unit cost and a fixed activation cost. The formulation should include binary variables that indicate whether an order is placed and constraints linking order quantities to those binaries. Use initial inventory {params['initial_inventory']}, demands {params['demand']}, unit cost {params['unit_order_cost']}, holding cost {params['holding_cost']}, fixed cost {params['fixed_order_cost']}, and Big-M value {params['big_m']}.", "fixed_order_cost_big_m_verbose"),
             _variant("table", f"Problem data:\n- Type: fixed-order-cost replenishment\n- Periods: {params['periods']}\n- Initial inventory: {params['initial_inventory']}\n- Demands: {params['demand']}\n- Unit order cost: {params['unit_order_cost']}\n- Holding cost: {params['holding_cost']}\n- Fixed order cost: {params['fixed_order_cost']}\n- Big-M: {params['big_m']}\nTask: formulate a mixed-integer linear model with binary order triggers.", "fixed_order_cost_big_m_table"),
+        ]
+
+    if problem_type == "single_item_multi_period_lead_time":
+        return [
+            _variant("math", f"Plan T={params['periods']} periods with lead time L={params['lead_time']}. Orders Q_t arrive after L periods; early arrivals are {params['scheduled_arrivals']}. Initial inventory is {params['initial_inventory']} and demand is {params['demand']}. Minimize order cost {params['unit_order_cost']} and holding cost {params['holding_cost']}.", "single_item_multi_period_lead_time_math"),
+            _variant("business", f"A supplier delivers replenishment orders after a {params['lead_time']}-period lead time. The firm starts with {params['initial_inventory']} units, has scheduled arrivals {params['scheduled_arrivals']}, and faces demands {params['demand']}. Build the delayed-arrival inventory LP.", "single_item_multi_period_lead_time_business"),
+            _variant("verbose", f"The inventory balance must use arrivals from orders placed {params['lead_time']} periods earlier, not the current-period order. Use demands {params['demand']} and scheduled arrivals {params['scheduled_arrivals']} while minimizing ordering and holding costs.", "single_item_multi_period_lead_time_verbose"),
+            _variant("table", f"Problem data:\n- Type: lead-time replenishment\n- Periods: {params['periods']}\n- Lead time: {params['lead_time']}\n- Scheduled arrivals: {params['scheduled_arrivals']}\n- Initial inventory: {params['initial_inventory']}\n- Demands: {params['demand']}\nTask: formulate a lead-time inventory-balance LP.", "single_item_multi_period_lead_time_table"),
+        ]
+
+    if problem_type == "single_item_multi_period_service_level":
+        return [
+            _variant("math", f"Plan T={params['periods']} periods with a fill-rate/service-level requirement {params['service_level']}. Demand is {params['demand']} and initial inventory is {params['initial_inventory']}. Use unmet-demand variables and limit total unmet demand to {params['max_unmet']}.", "single_item_multi_period_service_level_math"),
+            _variant("business", f"A store must maintain a service level of {params['service_level']} over {params['periods']} periods. It starts with {params['initial_inventory']} units and faces demands {params['demand']}. Build a replenishment LP with explicit service-level constraints.", "single_item_multi_period_service_level_business"),
+            _variant("verbose", f"The model may track unmet demand, but simply adding a shortage penalty is not enough: it must enforce a service-level or fill-rate constraint. Use max unmet demand {params['max_unmet']} and minimize ordering/holding costs.", "single_item_multi_period_service_level_verbose"),
+            _variant("table", f"Problem data:\n- Type: service-level replenishment\n- Periods: {params['periods']}\n- Service level: {params['service_level']}\n- Max unmet demand: {params['max_unmet']}\n- Demands: {params['demand']}\nTask: formulate a service-constrained LP.", "single_item_multi_period_service_level_table"),
+        ]
+
+    if problem_type == "single_item_multi_period_moq_batch":
+        return [
+            _variant("math", f"Plan T={params['periods']} periods with MOQ {params['minimum_order_quantity']} and batch size {params['batch_size']}. Use binary order trigger Y_t and integer batch multiplier Z_t; Q_t must be a batch multiple and MOQ applies only if Y_t=1.", "single_item_multi_period_moq_batch_math"),
+            _variant("business", f"A supplier accepts orders only in batches of {params['batch_size']} units, with minimum order quantity {params['minimum_order_quantity']} whenever an order is placed. Build a mixed-integer replenishment model for demands {params['demand']}.", "single_item_multi_period_moq_batch_business"),
+            _variant("verbose", f"Do not force every period to order. Instead, introduce an order trigger and condition the MOQ on the trigger, with Q_t = batch_size * Z_t and integer Z_t. Use Big-M {params['big_m']} to link Q_t and Y_t.", "single_item_multi_period_moq_batch_verbose"),
+            _variant("table", f"Problem data:\n- Type: MOQ/batch replenishment\n- Periods: {params['periods']}\n- MOQ: {params['minimum_order_quantity']}\n- Batch size: {params['batch_size']}\n- Big-M: {params['big_m']}\n- Demands: {params['demand']}\nTask: formulate a mixed-integer batch-ordering replenishment model.", "single_item_multi_period_moq_batch_table"),
         ]
 
     raise ValueError(f"Unknown problem_type: {problem_type}")
@@ -493,6 +677,49 @@ def build_model(problem_type, params):
             prev = params["initial_inventory"] if t == 0 else inv[t - 1]
             model += inv[t] == prev + q[t] - params["demand"][t], f"inventory_balance_{t}"
             model += q[t] <= params["big_m"] * y[t], f"big_m_{t}"
+        return model
+
+    if problem_type == "single_item_multi_period_lead_time":
+        t_count = params["periods"]
+        lead_time = params["lead_time"]
+        scheduled = list(params.get("scheduled_arrivals") or [])
+        model = pulp.LpProblem("single_item_multi_period_lead_time", pulp.LpMinimize)
+        q = pulp.LpVariable.dicts("Q", range(t_count), lowBound=0)
+        inv = pulp.LpVariable.dicts("I", range(t_count), lowBound=0)
+        model += pulp.lpSum(params["unit_order_cost"] * q[t] + params["holding_cost"] * inv[t] for t in range(t_count)), "total_cost"
+        for t in range(t_count):
+            prev = params["initial_inventory"] if t == 0 else inv[t - 1]
+            arrival = q[t - lead_time] if t - lead_time >= 0 else (scheduled[t] if t < len(scheduled) else 0)
+            model += inv[t] == prev + arrival - params["demand"][t], f"lead_time_inventory_balance_{t}"
+        return model
+
+    if problem_type == "single_item_multi_period_service_level":
+        t_count = params["periods"]
+        model = pulp.LpProblem("single_item_multi_period_service_level", pulp.LpMinimize)
+        q = pulp.LpVariable.dicts("Q", range(t_count), lowBound=0)
+        inv = pulp.LpVariable.dicts("I", range(t_count), lowBound=0)
+        back = pulp.LpVariable.dicts("B", range(t_count), lowBound=0)
+        model += pulp.lpSum(params["unit_order_cost"] * q[t] + params["holding_cost"] * inv[t] for t in range(t_count)), "total_cost"
+        for t in range(t_count):
+            prev_net = params["initial_inventory"] if t == 0 else inv[t - 1] - back[t - 1]
+            model += inv[t] - back[t] == prev_net + q[t] - params["demand"][t], f"inventory_balance_{t}"
+        model += pulp.lpSum(back[t] for t in range(t_count)) <= params["max_unmet"], "service_level_unmet_limit"
+        return model
+
+    if problem_type == "single_item_multi_period_moq_batch":
+        t_count = params["periods"]
+        model = pulp.LpProblem("single_item_multi_period_moq_batch", pulp.LpMinimize)
+        q = pulp.LpVariable.dicts("Q", range(t_count), lowBound=0)
+        inv = pulp.LpVariable.dicts("I", range(t_count), lowBound=0)
+        y = pulp.LpVariable.dicts("Y", range(t_count), lowBound=0, upBound=1, cat="Binary")
+        z = pulp.LpVariable.dicts("Z", range(t_count), lowBound=0, cat="Integer")
+        model += pulp.lpSum(params["unit_order_cost"] * q[t] + params["holding_cost"] * inv[t] for t in range(t_count)), "total_cost"
+        for t in range(t_count):
+            prev = params["initial_inventory"] if t == 0 else inv[t - 1]
+            model += inv[t] == prev + q[t] - params["demand"][t], f"inventory_balance_{t}"
+            model += q[t] >= params["minimum_order_quantity"] * y[t], f"moq_conditional_{t}"
+            model += q[t] <= params["big_m"] * y[t], f"big_m_order_trigger_{t}"
+            model += q[t] == params["batch_size"] * z[t], f"batch_linking_{t}"
         return model
 
     raise ValueError(f"Unknown problem_type: {problem_type}")

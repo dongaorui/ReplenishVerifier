@@ -3,7 +3,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-from replenishverifier.benchmark.schemas import DIFFICULTY_BY_TYPE, PROBLEM_TYPES
+from replenishverifier.benchmark.schemas import BASE_PROBLEM_TYPES, DIFFICULTY_BY_TYPE
 from replenishverifier.benchmark.templates import (
     build_model,
     choose_natural_language_variant,
@@ -35,7 +35,7 @@ def generate_benchmark(
     if include_labels and lp_dir is None:
         raise ValueError("lp_dir is required when include_labels=True")
     lp_dir = Path(lp_dir) if lp_dir is not None else None
-    problem_types = problem_types or PROBLEM_TYPES
+    problem_types = problem_types or BASE_PROBLEM_TYPES
     if include_parameters is None:
         include_parameters = bool(include_labels)
     if include_modeling_steps is None:

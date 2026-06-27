@@ -20,6 +20,10 @@ STRUCTURE_DESCRIPTIONS = {
     "binary_order_variable": "binary order trigger variable Y",
     "big_m_constraint": "Big-M linking constraint Q <= M * Y",
     "lead_time": "lead-time structure",
+    "service_level_constraint": "service-level or fill-rate constraint",
+    "moq_constraint": "minimum order quantity constraint",
+    "batch_integer_variable": "integer batch multiplier variable",
+    "batch_linking_constraint": "batch-size linking constraint",
     "order_cost": "order cost term",
     "holding_cost": "holding cost term",
     "shortage_cost": "shortage cost term",
@@ -39,6 +43,10 @@ REPAIR_HINTS = {
     "binary_order_variable": "Add binary setup/order-trigger variables, e.g. Y[t] in {0,1}.",
     "big_m_constraint": "Add linking constraints such as Q[t] <= M * Y[t] with a numerically reasonable M derived from demand/capacity bounds when possible.",
     "lead_time": "Represent delayed arrivals in the inventory balance, e.g. Q[t-L].",
+    "service_level_constraint": "Add an explicit service-level or fill-rate constraint limiting unmet demand, not only a shortage penalty.",
+    "moq_constraint": "Make the minimum order quantity conditional on an order trigger, e.g. Q[t] >= MOQ * Y[t].",
+    "batch_integer_variable": "Add integer batch multiplier variables Z[t] for order lots.",
+    "batch_linking_constraint": "Link order quantity to batch multiples, e.g. Q[t] = batch_size * Z[t].",
     "order_cost": "Include unit_order_cost * Q[t] or equivalent order-variable terms in the objective.",
     "holding_cost": "Include holding_cost * I[t] terms in the objective.",
     "shortage_cost": "Include shortage_cost * B[t] terms in the objective.",
@@ -613,6 +621,57 @@ def _build_lead_time_cert(parsed, required, optional):
     return _make_cert("lead_time", required, optional, strength, names, exprs)
 
 
+def _build_service_level_cert(parsed, required, optional):
+    names = _semantic_constraint_names(parsed, ["service", "fill", "unmet_limit", "shortage_limit"])
+    exprs = _constraint_evidence(parsed, ["service", "fill", "unmet", "shortage"])
+    good = []
+    for cname, expr in parsed.constraints.items():
+        vars_in_expr = _constraint_vars(parsed, cname)
+        has_shortage = any(_has_role([v], "shortage") for v in vars_in_expr)
+        if has_shortage and _expr_has_relation(expr, "le"):
+            good.append({"constraint": cname, "expr": expr, "variables": vars_in_expr[:12]})
+    strength = "strong" if names and good else ("expression_supported" if good else ("name_only" if names else "none"))
+    return _make_cert("service_level_constraint", required, optional, strength, names, good or exprs)
+
+
+def _build_moq_cert(parsed, required, optional):
+    names = _semantic_constraint_names(parsed, ["moq", "minimum_order", "min_order"])
+    exprs = _constraint_evidence(parsed, ["moq", "minimum_order", "min_order"])
+    good = []
+    for cname, expr in parsed.constraints.items():
+        vars_in_expr = _constraint_vars(parsed, cname)
+        has_order = any(_has_role([v], "order") for v in vars_in_expr)
+        has_binary = any(_has_role([v], "binary_order") for v in vars_in_expr)
+        if has_order and has_binary and _expr_has_relation(expr, "ge"):
+            good.append({"constraint": cname, "expr": expr, "variables": vars_in_expr[:12]})
+    strength = "strong" if names and good else ("expression_supported" if good else ("name_only" if names else "none"))
+    return _make_cert("moq_constraint", required, optional, strength, names, good or exprs)
+
+
+def _build_batch_integer_cert(parsed, required, optional):
+    names = [v for v in parsed.variable_names if any(term in _normalize(v) for term in ["z", "batch", "lot", "multiple"])]
+    integer_names = set(parsed.binary_variables or [])
+    generals = re.search(r"(?ims)^\s*Generals\s*(.*?)(?:^\s*Binaries\s*|^\s*End\s*$)", parsed.raw_text or "")
+    if generals:
+        integer_names.update(re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*\b", generals.group(1)))
+    matched = [name for name in names if name in integer_names]
+    strength = "strong" if matched else ("name_only" if names else "none")
+    return _make_cert("batch_integer_variable", required, optional, strength, matched or names, [{"integer_variables": sorted(integer_names)}] if integer_names else [])
+
+
+def _build_batch_linking_cert(parsed, required, optional):
+    names = _semantic_constraint_names(parsed, ["batch", "lot", "multiple"])
+    good = []
+    for cname, expr in parsed.constraints.items():
+        vars_in_expr = _constraint_vars(parsed, cname)
+        has_order = any(_has_role([v], "order") for v in vars_in_expr)
+        has_batch = any(any(term in _normalize(v) for term in ["z", "batch", "lot", "multiple"]) for v in vars_in_expr)
+        if has_order and has_batch and _expr_has_relation(expr, "eq"):
+            good.append({"constraint": cname, "expr": expr, "variables": vars_in_expr[:12]})
+    strength = "strong" if names and good else ("expression_supported" if good else ("name_only" if names else "none"))
+    return _make_cert("batch_linking_constraint", required, optional, strength, names, good)
+
+
 def build_rule_certificates(parsed, expected, required_structures, optional_structures, weak_evidence):
     required_set = set(required_structures)
     optional_set = set(optional_structures)
@@ -650,6 +709,14 @@ def build_rule_certificates(parsed, expected, required_structures, optional_stru
             cert = _build_objective_minimize_cert(parsed, required, optional)
         elif rule_name == "lead_time":
             cert = _build_lead_time_cert(parsed, required, optional)
+        elif rule_name == "service_level_constraint":
+            cert = _build_service_level_cert(parsed, required, optional)
+        elif rule_name == "moq_constraint":
+            cert = _build_moq_cert(parsed, required, optional)
+        elif rule_name == "batch_integer_variable":
+            cert = _build_batch_integer_cert(parsed, required, optional)
+        elif rule_name == "batch_linking_constraint":
+            cert = _build_batch_linking_cert(parsed, required, optional)
         else:
             cert = _make_cert(rule_name, required, optional)
         certs.append(cert.to_dict())

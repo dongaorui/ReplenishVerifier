@@ -591,6 +591,39 @@ Notes:
 - Code-review follow-up fixed prompt-text contamination in formal formulation awareness, positive-evidence requirements for variable domains, generic LLMOPT rank-stability risk in fixed-order TAC, and loss of TAC recovery metadata during final annotation.
 - Final full suite after review fixes: `python -m pytest -q` -> `254 passed, 52 warnings in 5.40s`.
 
+### Phase 19 — Deep semantic validation and V10 extended benchmark
+
+**Status:** complete on 2026-06-27
+
+Goal:
+
+- Add deeper replenishment semantic validation without making the existing surface `static_validation_score` aggressive.
+- Add an extended benchmark file that preserves the old 100 v6 rows and appends 60 new rows: 20 each for lead time, service level, and MOQ/batch replenishment.
+- Do not run V8/V9 experiments locally; the user will run those on Xshell.
+
+Actions:
+
+- Added `replenishverifier/experiments/deep_semantic_validation.py` with semantic/deep type-aware checks for Python `max()` newsvendor misuse, missing shortage cost, non-shared capacity, lead-time lag errors, missing service-level constraints, MOQ forced-order mistakes, non-integer batch multipliers, Big-M direction/linking errors, and binary-order linkage.
+- Wired `semantic_structure_validation` and `deep_type_aware_validation` into candidate evaluation outputs and TAC selection components as no-reference candidate-observable signals.
+- Kept existing surface static validation fields unchanged; deep scores are separate fields and TAC components.
+- Added benchmark support for `single_item_multi_period_lead_time`, `single_item_multi_period_service_level`, and `single_item_multi_period_moq_batch` across schema, semantic metadata, natural-language templates, reference PuLP models, and structure-rule certificates.
+- Preserved base generator defaults at the legacy 5 problem types by introducing `BASE_PROBLEM_TYPES` / `EXTENDED_PROBLEM_TYPES`; extended types are opt-in via explicit `problem_types`.
+- Generated `data/generated/test_160_v10_extended.jsonl` from the existing `data/generated/test_100_v6.jsonl` plus 60 newly generated v10 extended rows. LP artifacts for new rows were written under `runs/lp/test_160_v10_extended`.
+
+Verification:
+
+- RED/focused semantic tests initially exposed TAC not using deep semantic components for shortage selection; root cause was the shortage TAC profile key still ranking safe consensus before deep shortage-cost evidence.
+- Focused suite: `python -m pytest tests/test_deep_semantic_validation.py tests/test_extended_replenishment_problem_types.py tests/test_selection_gating.py tests/test_tac_cross_pool_stability.py tests/test_structure_rules.py tests/test_structure_schema.py -q` -> `83 passed, 42 warnings in 2.21s`.
+- Generator regression suite: `python -m pytest tests/test_generator_smoke.py tests/test_extended_replenishment_problem_types.py -q` -> `17 passed, 58 warnings in 1.83s`.
+- Full suite: `python -m pytest -q` -> `268 passed, 76 warnings in 5.71s`.
+- V10 benchmark count check: 160 rows total; each of the 8 problem types has 20 rows.
+
+Notes:
+
+- No V8/V9 experiment was run.
+- No candidate generation or `run_generation.py` change was made.
+- Formal selection remains no-reference; deep semantic validation uses candidate code/LP artifacts and problem type/parameters, not reference objectives or oracle correctness.
+
 ### Phase 16 — Cross-pool conservative TAC hardening
 
 **Status:** complete on 2026-06-25
