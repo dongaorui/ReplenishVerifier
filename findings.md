@@ -608,3 +608,27 @@ Review refinement:
 - TAC recovery metadata is preserved through final selected-row annotation.
 
 No other baseline selector, generation code, benchmark, or candidate file was intentionally changed.
+
+## 2026-06-27 — Deep semantic validation and V10 extended benchmark
+
+Deep semantic validation now exists as a separate layer from surface static validation:
+
+- `static_validation_score` and `type_aware_static_validation_score` remain surface/interface-oriented and were not made aggressively punitive.
+- New `semantic_structure_validation` and `deep_type_aware_validation` fields capture deeper replenishment errors from candidate code/LP artifacts: newsvendor `max(LpVariable, 0)`, shortage variables without shortage cost, non-shared capacity constraints, lead-time current-order misuse, missing service-level constraints, unconditional MOQ lower bounds, non-integer batch variables, Big-M direction/linking, and binary-order linkage.
+- TAC selection components now expose deep semantic scores/errors and use them in the shortage profile before raw safe consensus, so a high-consensus candidate missing shortage cost can be demoted by candidate-observable semantic evidence.
+- Formal selection remains no-reference; the new deep fields do not use `reference_objective`, `objective_correct`, oracle rank, reference LP, or reference answer.
+
+The extended benchmark is opt-in rather than changing legacy generator defaults:
+
+- `BASE_PROBLEM_TYPES` keeps the existing five default types for old smoke tests and scripts.
+- `EXTENDED_PROBLEM_TYPES` adds `single_item_multi_period_lead_time`, `single_item_multi_period_service_level`, and `single_item_multi_period_moq_batch`.
+- `ALL_PROBLEM_TYPES` is available when callers want both base and extended sets.
+- `data/generated/test_160_v10_extended.jsonl` preserves the old 100 rows from `test_100_v6.jsonl` and appends 60 new rows, 20 per extended type.
+
+Reference models for new types are solvable PuLP models:
+
+- Lead time uses delayed arrivals (`Q_{t-L}`) in inventory balance.
+- Service level includes unmet-demand variables and an explicit total-unmet service constraint.
+- MOQ/batch uses binary order triggers, conditional MOQ/Big-M linking, integer batch multipliers, and `Q_t = batch_size * Z_t`.
+
+Verification completed with full `python -m pytest -q`: `268 passed, 76 warnings`.

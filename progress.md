@@ -1696,3 +1696,76 @@ Additional verification after review fixes:
 - V8/V9 reselect, diagnostics, leakage audits, and paper metrics were refreshed.
 - Final full suite: `python -m pytest -q` -> `254 passed, 52 warnings in 5.40s`.
 - Final V8/V9 TAC objective_accuracy remained `0.8500` / `0.8300`; fixed-order Big-M remained `1.0000` on both.
+
+## 2026-06-27 — Deep semantic validation and V10 extended benchmark
+
+### User request
+
+The user asked to continue improving ReplenishVerifier based on current experimental findings: surface static validation is saturated across 800 candidates, while real errors are deeper replenishment semantics. Requirements: do not aggressively change existing `static_validation_score`; add deeper semantic/type-aware validation; add three extended benchmark problem types; create `data/generated/test_160_v10_extended.jsonl`; preserve old V8/V9 results and do not run V8/V9 experiments locally.
+
+### Actions completed
+
+1. Restored planning context and checked current working tree.
+2. Added TDD tests in `tests/test_deep_semantic_validation.py` for:
+   - newsvendor Python `max()` misuse on LP variables;
+   - shortage variable without shortage-cost objective term;
+   - non-shared capacity aggregation;
+   - lead-time balance using current `Q_t` instead of lagged `Q_{t-L}`;
+   - service-level cases missing explicit service constraint;
+   - MOQ constraints that force ordering every period;
+   - batch multiplier variables not declared integer;
+   - formal TAC selection components excluding forbidden reference/oracle keys while exposing deep semantic score.
+3. Added `replenishverifier/experiments/deep_semantic_validation.py` and integrated its outputs in `evaluate_candidate()`.
+4. Wired deep semantic/deep type-aware scores into TAC candidate-quality and selection components without changing surface static validation scores.
+5. Diagnosed the failing TAC deep semantic regression:
+   - The row-level deep fields were computed correctly, but `type_aware_consensus_selection_components()` did not expose/use them and the shortage TAC profile ranked safe consensus before deep shortage-cost evidence.
+   - Fixed by adding helper accessors, deep semantic error counts/scores, candidate-quality penalties, and shortage profile key ordering that prioritizes deep shortage semantic correctness before consensus.
+6. Added extended benchmark support:
+   - `single_item_multi_period_lead_time`;
+   - `single_item_multi_period_service_level`;
+   - `single_item_multi_period_moq_batch`.
+7. Updated benchmark schema/constants:
+   - `BASE_PROBLEM_TYPES` remains the legacy five default types;
+   - `EXTENDED_PROBLEM_TYPES` lists the three new opt-in types;
+   - `ALL_PROBLEM_TYPES` covers both base and extended;
+   - `PROBLEM_TYPES` remains the legacy default alias to preserve old generator tests/scripts.
+8. Added templates/reference models/metadata for the three new problem types in `replenishverifier/benchmark/templates.py`.
+9. Added structure schema and certificates for lead time, service level, MOQ, integer batch variables, and batch linking.
+10. Generated `data/generated/test_160_v10_extended.jsonl` by preserving 100 old rows from `data/generated/test_100_v6.jsonl` and appending 60 newly generated extended rows. New LP artifacts were written under `runs/lp/test_160_v10_extended`.
+
+### Verification
+
+- Focused semantic/extended tests after initial implementation:
+  - `python -m pytest tests/test_deep_semantic_validation.py tests/test_extended_replenishment_problem_types.py -q` -> `14 passed, 24 warnings` after TAC deep semantic fix.
+- Focused structure/TAC regression suite:
+  - `python -m pytest tests/test_deep_semantic_validation.py tests/test_extended_replenishment_problem_types.py tests/test_selection_gating.py tests/test_tac_cross_pool_stability.py tests/test_structure_rules.py tests/test_structure_schema.py -q`
+  - Result: `83 passed, 42 warnings in 2.21s`.
+- Generator defaults regression:
+  - Full suite initially failed because adding extended types to `PROBLEM_TYPES` changed default generator row counts from 5 to 8.
+  - Root cause: legacy tests/scripts expect default generation to cover only the five base problem types.
+  - Fix: keep `generate_benchmark()` defaulting to `BASE_PROBLEM_TYPES`, expose extended sets separately, and update extended tests to check `ALL_PROBLEM_TYPES`/`EXTENDED_PROBLEM_TYPES`.
+  - `python -m pytest tests/test_generator_smoke.py tests/test_extended_replenishment_problem_types.py -q` -> `17 passed, 58 warnings in 1.83s`.
+- Full suite:
+  - `python -m pytest -q` -> `268 passed, 76 warnings in 5.71s`.
+- V10 benchmark count check:
+  - `160` rows total.
+  - Each of the 8 problem types has `20` rows.
+  - First appended row is `single_item_multi_period_lead_time_0000`; final row is `single_item_multi_period_moq_batch_0019`.
+
+### Changed files
+
+- `replenishverifier/benchmark/generator.py`
+- `replenishverifier/benchmark/schemas.py`
+- `replenishverifier/benchmark/templates.py`
+- `replenishverifier/data/structure_schema.py`
+- `replenishverifier/experiments/deep_semantic_validation.py` (new)
+- `replenishverifier/experiments/methods.py`
+- `replenishverifier/verifier/structure_rules.py`
+- `tests/test_deep_semantic_validation.py` (new)
+- `tests/test_extended_replenishment_problem_types.py` (new)
+- `data/generated/test_160_v10_extended.jsonl` (generated)
+- planning files: `task_plan.md`, `findings.md`, `progress.md`
+
+### Notes
+
+No V8/V9 experiment, no real LLM candidate generation, no repair generation, and no `run_generation.py` change was performed. Formal selection remains no-reference; deep semantic validation uses candidate-observable artifacts and problem metadata, not reference objectives or oracle correctness.
